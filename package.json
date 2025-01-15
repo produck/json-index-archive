@@ -12,7 +12,8 @@
 		"publish": "npm run lint && lerna publish"
 	},
 	"workspaces": [
-		"packages/jiar"
+		"packages/jiar",
+		"packages/json-index-archive"
 	],
 	"devDependencies": {
 		"@eslint/js": "^9.18.0",
@@ -23,6 +24,7 @@
 		"eslint": "^9.18.0",
 		"globals": "^15.14.0",
 		"lerna": "^8.1.9",
+		"mocha": "^11.0.1",
 		"typescript-eslint": "^8.19.1"
 	}
 }

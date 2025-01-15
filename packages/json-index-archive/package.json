@@ -1,0 +1,20 @@
+{
+  "name": "@produck/json-index-archive",
+  "version": "0.0.0",
+  "main": "src/index.mjs",
+  "scripts": {
+    "test": "mocha \"**/*.spec.mjs\" -t 999999999"
+  },
+  "keywords": [
+    "archive",
+    "file-format",
+    "json-index"
+  ],
+  "author": "ChaosLee",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "@produck/idiom": "^0.4.1",
+    "@produck/ow": "^0.1.2"
+  }
+}
