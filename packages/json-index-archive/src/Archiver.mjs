@@ -7,6 +7,7 @@ import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
 
 const READDIR_OPTIONS = { withFileTypes: true };
+const NOT_AUTO_CLOSE = { autoClose: false };
 
 function BY_TYPE_THEN_NAME(direntA, direntB) {
 	if (direntA.isDirectory() && direntB.isFile()) {
@@ -69,7 +70,9 @@ export class Archiver {
 		}
 	}
 
-	async buildIndex(handleFile = () => {}) {
+	async buildIndex(fileHandler = () => {}) {
+		Assert.Type.Function(fileHandler, 'fileHandler');
+
 		const direntStack = [null];
 		const directoryNodeStack = [{ name: '', children: [] }];
 
@@ -87,7 +90,7 @@ export class Archiver {
 				directoryNodeStack[0].children.push(currentNode);
 
 				if (dirent.isFile()) {
-					await handleFile(dirent, currentNode);
+					await fileHandler(dirent, currentNode);
 				}
 
 				if (dirent.isDirectory()) {
@@ -102,6 +105,11 @@ export class Archiver {
 
 	async archive(destination, mode = 0o666) {
 		Assert.Type.String(destination, 'destination');
+		Assert.Integer(mode, 'mode');
+
+		if (mode < 0 || mode > 0o777) {
+			Ow.Error.Range('A mode should >=0 and <=0o777.');
+		}
 
 		const absoluteDestination = path.resolve(this.#root, destination);
 
@@ -120,25 +128,26 @@ export class Archiver {
 		const indexObject = await this.buildIndex(async (dirent, node) => {
 			const pathname = path.join(dirent.parentPath, dirent.name);
 			const readStream = fs.createReadStream(pathname);
-			const writeStream = handle.createWriteStream({ autoClose: false });
+			const writeStream = handle.createWriteStream(NOT_AUTO_CLOSE);
 			const hash = crypto.createHash('sha256');
+			let size = 0n;
 
 			closing.push(writeStream);
 			node.offset = String(offset);
-			node.size = 0;
 
 			readStream.on('data', chunk => {
-				node.size += chunk.length;
+				size += BigInt(chunk.length);
 				hash.update(chunk);
 			});
 
 			await Stream.promises.pipeline(readStream, writeStream);
-			offset += BigInt(node.size);
 			node.sha256 = hash.digest('hex');
+			node.size = String(size);
+			offset += size;
 		});
 
 		sizeBuffer[0] = offset;
-		await handle.write(Buffer.from(JSON.stringify(indexObject), 'utf-8'));
+		await handle.write(JSON.stringify(indexObject));
 		await handle.write(sizeBuffer, { position: 0 });
 
 		for (const stream of closing) {
