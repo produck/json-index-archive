@@ -1,5 +1,5 @@
-import { Dirent } from 'node:fs';
 import * as Stream from 'node:stream';
+import * as fs from 'node:fs';
 
 interface AbstractNode {
 	name: string;
@@ -35,7 +35,7 @@ export const Archiver: JSONIndexArchiverConstructor;
 
 export interface JSONIndexReaderFileHandle {
 	read(buffer: Buffer, options): Promise<undefined>;
-	createReadStream(options: Stream.ReadableOptions): Promise<Stream.Readable>;
+	createReadStream(options: Stream.ReadableOptions): fs.ReadStream;
 }
 
 export interface Dirent {
@@ -50,25 +50,25 @@ export interface ReaddirOptions {
 	recursive?: boolean;
 }
 
+type ReaddirResult = string[] | Dirent[];
+
 export interface JSONIndexReader {
 	readonly archiveSize: bigint;
 	readonly fileSize: bigint;
 	readonly inddexSize: number;
 
 	sync(): Promise<undefined>;
-	open(pathname: string): Promise<JSONIndexReaderFileHandle>;
+	open(pathname: string, flags: string): Promise<JSONIndexReaderFileHandle>;
 	exists(pathname: string): boolean;
-	readdir(pathname: string, options: ReaddirOptions): Promise<[]>;
+	readdir(pathname: string, options: ReaddirOptions): ReaddirResult;
 	readFile(pathname: string): Promise<Buffer>;
-	extractAll(destination: string): Promise<undefined>;
 
 	createReadStream(
 		pathname: string,
 		options: Stream.ReadableOptions
-	): Promise<unknown>;
+	): fs.ReadStream;
 }
 
 export interface JSONIndexReaderConstructor {
-	extractAll(pathname: string, destination: string): Promise<undefined>;
 	from(pathname: string): Promise<JSONIndexReader>;
 }

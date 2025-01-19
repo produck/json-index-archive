@@ -62,6 +62,31 @@ describe('::Reader', function () {
 		});
 	});
 
+	describe('.readdir()', function () {
+		it('should get name list.', async function () {
+			const reader = await Reader.from(archivePathname);
+
+			console.log(reader.readdir('/'));
+		});
+
+		it('should get pathname list.', async function () {
+			const reader = await Reader.from(archivePathname);
+
+			console.log(reader.readdir('/'));
+		});
+
+		it.only('should get dirent list.', async function () {
+			const reader = await Reader.from(archivePathname);
+
+			for (const dirent of reader.readdir('/', {
+				withFileTypes: true,
+				recursive: true,
+			})) {
+				console.log(dirent);
+			}
+		});
+	});
+
 	describe('.open()', function () {
 
 		describe('::FileHandle', function () {

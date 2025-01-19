@@ -7,22 +7,25 @@ import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
 
 import * as Utils from './Utils.mjs';
+import * as Pathname from './Pathname.mjs';
 import * as Token from './Token.mjs';
 import * as JIARError from './Error.mjs';
-import { FileHandle } from './FileHandler.mjs';
-import * as ReaderReaddir from './ReaderReaddir.mjs';
+import * as Readdir from './ReaderReaddir.mjs';
+import * as DIR from './Directory.mjs';
+
+import {
+	FileHandle,
+	normalizeReadFileOptions,
+	normalizeReadStreamOptions,
+} from './FileHandler.mjs';
 
 const USE_BIGINT = { bigint: true };
-const CHILDREN = Symbol('property::children');
-const SIZE = Symbol('property::size');
-const OFFSET = Symbol('property::offset');
 const FILE_SIZE_BUFFER_BYTE_LENGTH = 8;
 const CLOSE_STREAM = stream => stream.close();
-const { S_IFDIR, S_IFREG } = fs.constants;
 
 export class Reader {
 	#pathname = '';
-	#root = { [CHILDREN]: {} };
+	#root = DIR.createRootNode();
 
 	#size = {
 		archive: 0n,
@@ -51,87 +54,71 @@ export class Reader {
 		this.#pathname = pathname;
 	}
 
-	#find(pathname) {
-		const components = pathname.split(path.posix.sep);
-		let current = this.#root;
-
-		components.shift();
-
-		while (components.length > 0) {
-			const top = components.shift();
-
-			if (!Object.hasOwn(current, CHILDREN)) {
-				return null;
-			}
-
-			if (!Object.hasOwn(current[CHILDREN], top)) {
-				return null;
-			}
-
-			current = current[CHILDREN][top];
-		}
-
-		return current;
-	}
-
 	exists(pathname) {
-		Utils.Pathname.assert(pathname);
+		Pathname.assert(pathname);
 
-		return this.#find(pathname) === null ? false : true;
+		return DIR.find(pathname, this.#root) === null ? false : true;
 	}
 
 	async open(pathname) {
-		Utils.Pathname.assert(pathname);
+		Pathname.assert(pathname);
 
-		if (this.#find(pathname) === null) {
+		const node = DIR.find(pathname, this.#root);
+
+		if (node === null) {
 			Ow.throw(JIARError.ENOENT(pathname));
 		}
 
-		return new FileHandle(this, pathname);
-	}
+		const handle = await fs.promises.open(this.#pathname, 'r');
 
-	*nodes(parentPath, maxDepth = 1) {
-		Utils.Pathname.assert(parentPath);
-
-		yield * function* visit(parentPath, node, depth) {
-			if (depth > maxDepth) {
-				return;
-			}
-
-			for (const name in node[CHILDREN]) {
-				const childNode = node[CHILDREN][name];
-				const isDirectory = CHILDREN in childNode;
-
-				yield [parentPath, name, isDirectory ? S_IFDIR : S_IFREG];
-
-				if (isDirectory) {
-					yield * visit(path.posix.join(parentPath, name), childNode, depth + 1);
-				}
-			}
-		}(parentPath, this.#find(parentPath), 1);
+		return new FileHandle(handle, node[DIR.OFFSET], node[DIR.SIZE]);
 	}
 
 	readdir(pathname, options) {
-		Utils.Pathname.assert(pathname);
+		Pathname.assert(pathname);
 
-		const { recursive, withFileType } = ReaderReaddir.normalizeOptions(options);
-		const list = [];
+		const { recursive, withFileTypes } = Readdir.normalizeOptions(options);
 
-		let handler = ReaderReaddir.Handler.toName;
+		let handler = Readdir.Handler.toName;
 
 		if (recursive) {
-			handler = ReaderReaddir.Handler.toPathname;
+			handler = Readdir.Handler.toPathname;
 		}
 
-		if (withFileType) {
-			handler = ReaderReaddir.Handler.toDirent;
+		if (withFileTypes) {
+			handler = Readdir.Handler.toDirent;
 		}
 
-		for (const triple of this.nodes(recursive ? Number.MAX_SAFE_INTEGER : 1)) {
-			list.push(handler(...triple));
-		}
+		const maxDepth = recursive ? Number.MAX_SAFE_INTEGER : 1;
 
-		return list;
+		return [...DIR.nodes(pathname, this.#root, maxDepth)].map(handler);
+	}
+
+	async readFile(pathname, options) {
+		Pathname.assert(pathname);
+		options = normalizeReadFileOptions(options);
+
+		const handle = await this.open(pathname);
+
+		return await handle.readFile(options);
+	}
+
+	createReadStream(pathname, options) {
+		Pathname.assert(pathname);
+		options = normalizeReadStreamOptions(options);
+
+		const stream = Stream.Readable.from(async () => {
+			const handle = await this.open(pathname);
+			const readStream = handle.createReadStream(options);
+
+
+
+			for await (const chunk of readStream) {
+				yield chunk;
+			}
+		});
+
+		return stream;
 	}
 
 	async sync() {
@@ -159,7 +146,7 @@ export class Reader {
 
 		await (async function visit(object, node) {
 			if (Object.hasOwn(object, 'children')) {
-				const children = node[CHILDREN] = {};
+				const children = node[DIR.CHILDREN] = {};
 
 				for (const childObject of object.children) {
 					const childNode = children[childObject.name] = {};
@@ -167,8 +154,8 @@ export class Reader {
 					await visit(childObject, childNode);
 				}
 			} else {
-				const offset = node[OFFSET] = Number(object.offset);
-				const size = node[SIZE] = Number(object.size);
+				const offset = node[DIR.OFFSET] = Number(object.offset);
+				const size = node[DIR.SIZE] = Number(object.size);
 				const start = fileSizeByteLength + offset;
 				const end = start + size - 1;
 
@@ -191,14 +178,6 @@ export class Reader {
 		closingReading.forEach(CLOSE_STREAM);
 	}
 
-	async extractAll(destination) {
-		Assert.Type.String(destination);
-		await this.sync();
-		destination = path.resolve(destination);
-
-
-	}
-
 	static async #from(pathname) {
 		pathname = path.resolve(pathname);
 		Utils.assertFileExisted(pathname);
@@ -208,15 +187,6 @@ export class Reader {
 		await reader.sync();
 
 		return reader;
-	}
-
-	static async extractAll(source, destination) {
-		Assert.Type.String(source, 'source');
-		Assert.Type.String(destination, 'destination');
-
-		const reader = await this.#from(source);
-
-		await reader.extractAll(destination);
 	}
 
 	static async from(pathname) {
