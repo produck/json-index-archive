@@ -8,7 +8,7 @@ import { Reader } from '../src/Reader.mjs';
 const __dirname = import.meta.dirname;
 const archivePathname = path.join(__dirname, 'sample.jiar');
 
-describe('::Reader', function () {
+describe.skip('::Reader', function () {
 	describe('::from()', function () {
 		it('should create a reader.', async function () {
 			const reader = await Reader.from(archivePathname);

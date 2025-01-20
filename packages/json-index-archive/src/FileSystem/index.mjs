@@ -10,8 +10,9 @@ import * as Utils from './Utils.mjs';
 import * as Pathname from './Pathname.mjs';
 import * as Token from './Token.mjs';
 import * as JIARError from './Error.mjs';
-import * as Readdir from './ReaderReaddir.mjs';
-import * as DIR from './Directory.mjs';
+import * as Readdir from './Readdir.mjs';
+import * as IndexObject from './IndexObject.mjs';
+import { VISIT_AT_ALL, DirectoryNode } from './IndexTree.mjs';
 
 import {
 	FileHandle,
@@ -19,18 +20,14 @@ import {
 	normalizeReadStreamOptions,
 } from './FileHandler.mjs';
 
+const { S_IFREG, S_IFDIR } = fs.constants;
 const USE_BIGINT = { bigint: true };
 const FILE_SIZE_BUFFER_BYTE_LENGTH = 8;
-const CLOSE_STREAM = stream => stream.close();
 
-export class Reader {
+export class FileSystem {
 	#pathname = '';
-	#root = DIR.createRootNode();
-
-	#size = {
-		archive: 0n,
-		file: 0n,
-	};
+	#root = new DirectoryNode();
+	#size = { archive: 0n, file: 0n };
 
 	get archiveSize() {
 		return this.#size.archive;
@@ -57,13 +54,16 @@ export class Reader {
 	exists(pathname) {
 		Pathname.assert(pathname);
 
-		return DIR.find(pathname, this.#root) === null ? false : true;
+		const sections = Pathname.parse(pathname);
+
+		return this.#root.find(sections) === null ? false : true;
 	}
 
 	async open(pathname) {
 		Pathname.assert(pathname);
 
-		const node = DIR.find(pathname, this.#root);
+		const sections = Pathname.parse(pathname);
+		const node = this.#root.find(sections);
 
 		if (node === null) {
 			Ow.throw(JIARError.ENOENT(pathname));
@@ -71,7 +71,7 @@ export class Reader {
 
 		const handle = await fs.promises.open(this.#pathname, 'r');
 
-		return new FileHandle(handle, node[DIR.OFFSET], node[DIR.SIZE]);
+		return new FileHandle(handle, node.offset, node.size);
 	}
 
 	readdir(pathname, options) {
@@ -89,9 +89,28 @@ export class Reader {
 			handler = Readdir.Handler.toDirent;
 		}
 
-		const maxDepth = recursive ? Number.MAX_SAFE_INTEGER : 1;
+		const depth = recursive ? Number.MAX_SAFE_INTEGER : 1;
+		const sections = Pathname.parse(pathname);
+		const node = this.#root.find(sections);
+		const records = node.children(depth, VISIT_AT_ALL);
+		const visited = new Set();
+		const stack = [];
+		const list = [];
 
-		return [...DIR.nodes(pathname, this.#root, maxDepth)].map(handler);
+		for (const record of records) {
+			if (visited.has(record)) {
+				stack.pop();
+			} else {
+				const [name, node] = record;
+				const mode = node instanceof DirectoryNode ? S_IFDIR : S_IFREG;
+
+				handler([...sections, ...stack], name, mode);
+				stack.push(name);
+				visited.add(record);
+			}
+		}
+
+		return list;
 	}
 
 	async readFile(pathname, options) {
@@ -135,58 +154,45 @@ export class Reader {
 
 		const fileSize = this.#size.file = fileSizeBuffer[0];
 		const indexBuffer = Buffer.allocUnsafe(this.indexSize);
-		const fileSizeByteLength = fileSizeBuffer.byteLength;
 
 		await handle.read(indexBuffer, {
-			position: fileSizeByteLength + Number(fileSize),
+			position: FILE_SIZE_BUFFER_BYTE_LENGTH + Number(fileSize),
 		});
 
 		const indexObject = JSON.parse(indexBuffer.toString('utf-8'));
-		const closingReading = [];
+		const ROOT_SETTER = root => this.#root = root;
+		const fileRecords = IndexObject.buildTree(indexObject, ROOT_SETTER);
 
-		await (async function visit(object, node) {
-			if (Object.hasOwn(object, 'children')) {
-				const children = node[DIR.CHILDREN] = {};
+		for (const [offset, size, sha256] of fileRecords) {
+			const start = FILE_SIZE_BUFFER_BYTE_LENGTH + offset;
+			const end = start + size - 1;
 
-				for (const childObject of object.children) {
-					const childNode = children[childObject.name] = {};
+			const hash = crypto.createHash('sha256');
 
-					await visit(childObject, childNode);
-				}
-			} else {
-				const offset = node[DIR.OFFSET] = Number(object.offset);
-				const size = node[DIR.SIZE] = Number(object.size);
-				const start = fileSizeByteLength + offset;
-				const end = start + size - 1;
+			const readStream = handle.createReadStream({
+				autoClose: false,
+				start, end,
+			});
 
-				const hash = crypto.createHash('sha256');
+			await Stream.promises.pipeline(readStream, hash);
 
-				const readStream = handle.createReadStream({
-					autoClose: false,
-					start, end,
-				});
-
-				closingReading.push(readStream);
-				await Stream.promises.pipeline(readStream, hash);
-
-				if (hash.digest('hex') !== object.sha256) {
-					Ow.Error.Common('File is broken.');
-				}
+			if (hash.digest('hex') !== sha256) {
+				Ow.Error.Common('File is broken.');
 			}
-		})(indexObject, this.#root);
+		}
 
-		closingReading.forEach(CLOSE_STREAM);
+		handle.close();
 	}
 
 	static async #from(pathname) {
 		pathname = path.resolve(pathname);
 		Utils.assertFileExisted(pathname);
 
-		const reader = new Reader(pathname, Token.create());
+		const fs = new this(pathname, Token.create());
 
-		await reader.sync();
+		await fs.sync();
 
-		return reader;
+		return fs;
 	}
 
 	static async from(pathname) {
