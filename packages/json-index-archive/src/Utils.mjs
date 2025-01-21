@@ -8,7 +8,7 @@ export async function isFileExisted(pathname) {
 }
 
 export async function assertFileExisted(pathname) {
-	if (!isFileExisted(pathname)) {
+	if (!await isFileExisted(pathname)) {
 		Ow.Error.Common(`File "${pathname}" is NOT existed.`);
 	}
 }

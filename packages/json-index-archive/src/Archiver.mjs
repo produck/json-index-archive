@@ -153,5 +153,7 @@ export class Archiver {
 		for (const stream of closing) {
 			stream.close();
 		}
+
+		handle.close();
 	}
 }

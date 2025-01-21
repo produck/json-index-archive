@@ -4,15 +4,14 @@ import * as crypto from 'node:crypto';
 import * as Stream from 'node:stream';
 
 import * as Ow from '@produck/ow';
-import { Assert } from '@produck/idiom';
+import { Assert, Is } from '@produck/idiom';
 
-import * as Utils from './Utils.mjs';
+import * as Utils from '../Utils.mjs';
+import * as JIARError from '../Error.mjs';
 import * as Pathname from './Pathname.mjs';
-import * as Token from './Token.mjs';
-import * as JIARError from './Error.mjs';
 import * as Readdir from './Readdir.mjs';
 import * as IndexObject from './IndexObject.mjs';
-import { VISIT_AT_ALL, DirectoryNode } from './IndexTree.mjs';
+import { VISIT_AT, DirectoryNode } from './IndexTree/index.mjs';
 
 import {
 	FileHandle,
@@ -21,7 +20,6 @@ import {
 } from './FileHandler.mjs';
 
 const { S_IFREG, S_IFDIR } = fs.constants;
-const USE_BIGINT = { bigint: true };
 const FILE_SIZE_BUFFER_BYTE_LENGTH = 8;
 
 export class FileSystem {
@@ -43,27 +41,16 @@ export class FileSystem {
 		return bodySize - Number(this.#size.file);
 	}
 
-	constructor(pathname, token) {
-		if (!Token.has(token)) {
-			Ow.Error.Common('Illegal constructor');
-		}
-
-		this.#pathname = pathname;
-	}
-
 	exists(pathname) {
 		Pathname.assert(pathname);
 
-		const sections = Pathname.parse(pathname);
-
-		return this.#root.find(sections) === null ? false : true;
+		return this.#root.find(...Pathname.parse(pathname)) === null ? false : true;
 	}
 
 	async open(pathname) {
 		Pathname.assert(pathname);
 
-		const sections = Pathname.parse(pathname);
-		const node = this.#root.find(sections);
+		const node = this.#root.find(...Pathname.parse(pathname));
 
 		if (node === null) {
 			Ow.throw(JIARError.ENOENT(pathname));
@@ -91,21 +78,18 @@ export class FileSystem {
 
 		const depth = recursive ? Number.MAX_SAFE_INTEGER : 1;
 		const sections = Pathname.parse(pathname);
-		const node = this.#root.find(sections);
-		const records = node.children(depth, VISIT_AT_ALL);
-		const visited = new Set();
-		const stack = [];
-		const list = [];
+		const node = this.#root.find(...sections);
+		const visited = new Set(), nameStack = [], list = [];
 
-		for (const record of records) {
+		for (const record of node.children(depth, VISIT_AT.ALL)) {
 			if (visited.has(record)) {
-				stack.pop();
+				nameStack.pop();
 			} else {
 				const [name, node] = record;
-				const mode = node instanceof DirectoryNode ? S_IFDIR : S_IFREG;
+				const mode = DirectoryNode.isNode(node) ? S_IFDIR : S_IFREG;
 
-				handler([...sections, ...stack], name, mode);
-				stack.push(name);
+				list.push(handler([...sections, ...nameStack], name, mode));
+				nameStack.push(name);
 				visited.add(record);
 			}
 		}
@@ -130,10 +114,8 @@ export class FileSystem {
 			const handle = await this.open(pathname);
 			const readStream = handle.createReadStream(options);
 
-
-
 			for await (const chunk of readStream) {
-				yield chunk;
+				// yield chunk;
 			}
 		});
 
@@ -141,9 +123,12 @@ export class FileSystem {
 	}
 
 	async sync() {
-		Utils.assertFileExisted(this.#pathname);
+		await Utils.assertFileExisted(this.#pathname);
+		await this.#sync();
+	}
 
-		const stat = await fs.promises.stat(this.#pathname, USE_BIGINT);
+	async #sync() {
+		const stat = await fs.promises.stat(this.#pathname);
 
 		this.#size.archive = stat.size;
 
@@ -160,21 +145,17 @@ export class FileSystem {
 		});
 
 		const indexObject = JSON.parse(indexBuffer.toString('utf-8'));
-		const ROOT_SETTER = root => this.#root = root;
-		const fileRecords = IndexObject.buildTree(indexObject, ROOT_SETTER);
+		const root = this.#root = new DirectoryNode();
 
-		for (const [offset, size, sha256] of fileRecords) {
-			const start = FILE_SIZE_BUFFER_BYTE_LENGTH + offset;
-			const end = start + size - 1;
+		for (const { offset, size, sha256 } of IndexObject.build(indexObject, root)) {
+			Assert.Type.String(sha256, '.sha256');
 
+			const start = FILE_SIZE_BUFFER_BYTE_LENGTH + Number(offset);
+			const end = start + Number(size) - 1;
 			const hash = crypto.createHash('sha256');
+			const stream = handle.createReadStream({ autoClose: false, start, end });
 
-			const readStream = handle.createReadStream({
-				autoClose: false,
-				start, end,
-			});
-
-			await Stream.promises.pipeline(readStream, hash);
+			await Stream.promises.pipeline(stream, hash);
 
 			if (hash.digest('hex') !== sha256) {
 				Ow.Error.Common('File is broken.');
@@ -184,20 +165,16 @@ export class FileSystem {
 		handle.close();
 	}
 
-	static async #from(pathname) {
+	static async mount(pathname) {
+		Assert.Type.String(pathname, 'pathname');
 		pathname = path.resolve(pathname);
-		Utils.assertFileExisted(pathname);
+		await Utils.assertFileExisted(pathname);
 
-		const fs = new this(pathname, Token.create());
+		const fs = new this(pathname);
 
-		await fs.sync();
+		fs.#pathname = pathname;
+		await fs.#sync();
 
 		return fs;
-	}
-
-	static async from(pathname) {
-		Assert.Type.String(pathname, 'pathname');
-
-		return await this.#from(pathname);
 	}
 }

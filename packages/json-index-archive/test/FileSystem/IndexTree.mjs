@@ -3,10 +3,14 @@ import { describe, it } from 'mocha';
 
 import {
 	DirectoryNode, FileNode,
-	ORDER, VISIT_AT,
+	ORDER, VISIT_AT, isNode,
 } from '../../src/FileSystem/IndexTree/index.mjs';
 
 export default function Describe() {
+	describe('::isNode()', function () {
+
+	});
+
 	describe('::FileNode', function () {
 		describe('constructor()', function () {
 			it('should create a FileNode', function () {

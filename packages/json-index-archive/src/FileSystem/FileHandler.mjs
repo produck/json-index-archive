@@ -36,7 +36,7 @@ function normalizeReadOptions(options, buffer) {
 	return _options;
 }
 
-function normalizeReadStreamOptions(options) {
+export function normalizeReadStreamOptions(options) {
 
 }
 
