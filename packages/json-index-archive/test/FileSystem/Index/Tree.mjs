@@ -4,11 +4,22 @@ import { describe, it } from 'mocha';
 import {
 	DirectoryNode, FileNode,
 	ORDER, VISIT_AT, isNode,
-} from '../../src/FileSystem/IndexTree/index.mjs';
+} from '../../../src/FileSystem/Index/Tree.mjs';
 
 export default function Describe() {
 	describe('::isNode()', function () {
+		it('should be false', function () {
+			assert.equal(isNode(null), false);
+		});
 
+		it('should be true', function () {
+			for (const value of [
+				new DirectoryNode(),
+				new FileNode(0, 0),
+			]) {
+				assert.equal(isNode(value), true);
+			}
+		});
 	});
 
 	describe('::FileNode', function () {

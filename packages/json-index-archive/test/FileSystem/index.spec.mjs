@@ -4,8 +4,8 @@ import * as assert from 'node:assert/strict';
 import { describe, it } from 'mocha';
 
 import PathnameDescribe from './Pathname.mjs';
-import IndexTreeDescribe from './IndexTree.mjs';
-import IndexObjectDescribe from './IndexObject.mjs';
+import IndexTreeDescribe from './Index/Tree.mjs';
+import IndexObjectDescribe from './Index/Object.mjs';
 import DirentDescribe from './Dirent.mjs';
 
 import { FileSystem } from '../../src/FileSystem/index.mjs';
@@ -15,8 +15,12 @@ const samplePathname = path.resolve(__dirname, 'sample.jiar');
 
 describe('::FileSystem', function () {
 	describe('::Pathname', PathnameDescribe);
-	describe('::IndexTree', IndexTreeDescribe);
-	describe('::IndexObject', IndexObjectDescribe);
+
+	describe('::Index', function () {
+		describe('::Tree', IndexTreeDescribe);
+		describe('::Object', IndexObjectDescribe);
+	});
+
 	describe('::Dirent', DirentDescribe);
 
 	describe('.archiveSize', function () {

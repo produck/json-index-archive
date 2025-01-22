@@ -1,11 +1,11 @@
 import * as Ow from '@produck/ow';
 import { Assert, Is } from '@produck/idiom';
-import * as IndexTree from './IndexTree/index.mjs';
+import * as Tree from './Tree.mjs';
 
 export function* build(object, node) {
 	Assert.Type.Object(object, 'object');
 
-	if (!IndexTree.isNode(node)) {
+	if (!Tree.isNode(node)) {
 		Ow.Invalid('node', 'FileNode | DirectoryNode');
 	}
 
@@ -34,12 +34,12 @@ export function* build(object, node) {
 				Ow.Error.Common('".size" SHOULD NOT be NaN.');
 			}
 
-			const childNode = new IndexTree.FileNode(offsetNumber, sizeNumber);
+			const childNode = new Tree.FileNode(offsetNumber, sizeNumber);
 
 			node.appendChild(name, childNode);
 			yield { ...childObject };
 		} else {
-			const childNode = new IndexTree.DirectoryNode();
+			const childNode = new Tree.DirectoryNode();
 
 			node.appendChild(name, childNode);
 			yield * build(childObject, childNode);
