@@ -9,6 +9,7 @@ import IndexObjectDescribe from './Index/Object.mjs';
 import DirentDescribe from './Dirent.mjs';
 
 import { FileSystem } from '../../src/FileSystem/index.mjs';
+import { Dirent } from '../../src/FileSystem/Dirent.mjs';
 
 const __dirname = import.meta.dirname;
 const samplePathname = path.resolve(__dirname, 'sample.jiar');
@@ -100,32 +101,95 @@ describe('::FileSystem', function () {
 	});
 
 	describe('.readdir()', function () {
-		it('should get name string[].', function () {
+		it('should get name string[].', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const list = jiar.readdir('/');
 
+			assert.equal(list.length, 3);
+
+			for (const name of ['bar', 'foo', 'baz']) {
+				assert.ok(list.includes(name));
+			}
+
+			assert.deepEqual(jiar.readdir('/foo'), []);
 		});
 
-		it('should get pathname string[].', function () {
+		it('should get pathname string[].', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const list = jiar.readdir('/', { recursive: true });
 
+			assert.equal(list.length, 8);
+
+			for (const pathname of [
+				'/bar',
+				'/bar/foo',
+				'/bar/foo/bar',
+				'/bar/foo/baz',
+				'/bar/baz',
+				'/bar/qux',
+				'/foo',
+				'/baz',
+			]) {
+				assert.ok(list.includes(pathname));
+			}
 		});
 
-		it('should get dirent[].', function () {
+		it('should get dirent[].', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const list = jiar.readdir('/', { withFileTypes: true });
 
+			assert.equal(list.length, 3);
+
+			const types = {
+				bar: dirent => dirent.isDirectory(),
+				foo: dirent => dirent.isDirectory(),
+				baz: dirent => dirent.isFile(),
+			};
+
+			for (const dirent of list) {
+				assert.ok(dirent instanceof Dirent);
+				assert.ok(types[dirent.name](dirent));
+			}
 		});
 
-		it('should throw if bad pathname.', function () {
+		it('should throw if bad pathname.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			assert.throws(() => jiar.readdir('a/b'), {
+				name: 'Error',
+				message: 'Bad pathname, should be POSIX absolute path.',
+			});
 		});
 
-		it('should throw if bad options.', function () {
+		it('should throw if bad options.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			assert.throws(() => jiar.readdir('/', 'bad'), {
+				name: 'TypeError',
+				message: 'Invalid "options", one "object" expected.',
+			});
 		});
 
-		it('should throw if bad options.recursive.', function () {
+		it('should throw if bad options.recursive.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			assert.throws(() => jiar.readdir('/', {
+				recursive: 'bad',
+			}), {
+				name: 'TypeError',
+				message: 'Invalid "options.recursive", one "boolean" expected.',
+			});
 		});
 
-		it('should throw if bad options.withFileTypes.', function () {
+		it('should throw if bad options.withFileTypes.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			assert.throws(() => jiar.readdir('/', {
+				withFileTypes: 'bad',
+			}), {
+				name: 'TypeError',
+				message: 'Invalid "options.withFileTypes", one "boolean" expected.',
+			});
 		});
 	});
 
