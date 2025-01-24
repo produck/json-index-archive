@@ -12,6 +12,7 @@ import FileHandlerDescribe from './FileHandle/index.mjs';
 import { FileSystem } from '../../src/FileSystem/index.mjs';
 import { Dirent } from '../../src/FileSystem/Dirent.mjs';
 import { FileHandle } from '../../src/FileSystem/FileHandle/index.mjs';
+import { ReadStream } from '../../src/FileSystem/ReadStream.mjs';
 
 const __dirname = import.meta.dirname;
 const samplePathname = path.resolve(__dirname, 'sample.jiar');
@@ -233,16 +234,20 @@ describe('::FileSystem', function () {
 	});
 
 	describe('.createReadStream()', function () {
-		it('should get a read stream.', function () {
+		it('should get a read stream.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const stream = jiar.createReadStream('/baz');
 
-		});
+			assert.ok(stream instanceof ReadStream);
+			assert.equal(stream.path, '/baz');
+			assert.equal(stream.pending, true);
+			assert.equal(stream.bytesRead, 0);
 
-		it('should throw if bad pathname.', function () {
-
-		});
-
-		it('should throw if bad options.', function () {
-
+			await new Promise((resolve) => stream.on('ready', () => {
+				assert.equal(stream.pending, false);
+				stream.destroy();
+				resolve();
+			}));
 		});
 	});
 

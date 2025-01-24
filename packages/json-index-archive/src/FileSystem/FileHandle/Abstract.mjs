@@ -6,8 +6,8 @@ import { Assert } from '@produck/idiom';
 const NativeFileHandle = (await fs.promises.open('/')).constructor;
 
 export const MEMBER = {
-	POSITION: Symbol(),
-	NATIVE_HANDLE: Symbol('position'),
+	POSITION: Symbol('position'),
+	NATIVE_HANDLE: Symbol('nativeHandle'),
 	OFFSET: Symbol('offset'),
 	SIZE: Symbol('size'),
 	IS_FILE: Symbol('isFile'),
@@ -33,8 +33,8 @@ export class AbstractFileHandle extends EventEmitter {
 	[MEMBER.SIZE] = 0;
 	[MEMBER.IS_FILE] = false;
 
-	constructor(handle, isFile, offset, size) {
-		if (!(handle instanceof NativeFileHandle)) {
+	constructor(nativeHandle, isFile, offset, size) {
+		if (!(nativeHandle instanceof NativeFileHandle)) {
 			Ow.Invalid('handle', 'fs.FileHandle');
 		}
 
@@ -59,9 +59,8 @@ export class AbstractFileHandle extends EventEmitter {
 			this[MEMBER.SIZE] = size;
 		}
 
-		this[MEMBER.NATIVE_HANDLE] = handle;
-
-		handle.on('close', (...args) => this.emit(...args));
+		this[MEMBER.NATIVE_HANDLE] = nativeHandle;
+		nativeHandle.on('close', () => this.emit('close'));
 	}
 
 	async close() {

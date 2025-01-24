@@ -14,7 +14,7 @@ export const FILE_SIZE = Symbol('fileSize');
 
 export const FILE_SIZE_BUFFER_BYTE_LENGTH = 8;
 
-export const PROTOTYPE = {
+export const IMLEMENT = {
 	SYNC: Symbol('_sync'),
 	EXISTS: Symbol('_exists'),
 	OPEN: Symbol('_open'),
@@ -65,36 +65,36 @@ export class AbstractFileSystem {
 	exists(pathname) {
 		Pathname.assert(pathname);
 
-		return this[PROTOTYPE.EXISTS](pathname);
+		return this[IMLEMENT.EXISTS](pathname);
 	}
 
 	open(pathname) {
 		Pathname.assert(pathname);
 
-		return this[PROTOTYPE.OPEN](pathname);
+		return this[IMLEMENT.OPEN](pathname);
 	}
 
 	readdir(pathname, ...options) {
 		Pathname.assert(pathname);
 
-		return this[PROTOTYPE.READDIR](pathname, ...options);
+		return this[IMLEMENT.READDIR](pathname, ...options);
 	}
 
 	readFile(pathname, ...options) {
 		Pathname.assert(pathname);
 
-		return this[PROTOTYPE.READ_FILE](pathname, ...options);
+		return this[IMLEMENT.READ_FILE](pathname, ...options);
 	}
 
 	createReadStream(pathname, ...options) {
 		Pathname.assert(pathname);
 
-		return this[PROTOTYPE.CREATE_READ_STREAM](pathname, ...options);
+		return this[IMLEMENT.CREATE_READ_STREAM](pathname, ...options);
 	}
 
 	async sync() {
 		await assertFileExisted(this[PATHNAME]);
-		await this[PROTOTYPE.SYNC]();
+		await this[IMLEMENT.SYNC]();
 	}
 
 	static async mount(pathname) {

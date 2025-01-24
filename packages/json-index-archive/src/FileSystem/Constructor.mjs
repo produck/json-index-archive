@@ -1,9 +1,9 @@
 import * as Ow from '@produck/ow';
-import { AbstractFileSystem, PROTOTYPE } from './Abstract.mjs';
+import { AbstractFileSystem, IMLEMENT } from './Abstract.mjs';
 
 export class FileSystem extends AbstractFileSystem {}
 
-const symbols = Object.values(PROTOTYPE);
+const symbols = Object.values(IMLEMENT);
 
 export function implement(name, method) {
 	if (!symbols.includes(name)) {
