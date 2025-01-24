@@ -152,7 +152,9 @@ export default async (self, ...args) => {
 		position: self[MEMBER.OFFSET] + finalPosition,
 	});
 
-	self[MEMBER.POSITION] += result.bytesRead;
+	if (Is.Null(position)) {
+		self[MEMBER.POSITION] += result.bytesRead;
+	}
 
 	return result;
 };

@@ -33,7 +33,7 @@ function normalizeOptions(options = {}) {
 		encoding: null,
 		autoClose: true,
 		emitClose: true,
-		start: 0,
+		start: undefined,
 		end: Infinity,
 		highWaterMark: 64 * 1024,
 		signal: undefined,
@@ -55,7 +55,10 @@ function normalizeOptions(options = {}) {
 
 	Assert.Type.Boolean(_autoClose, 'options.autoClose');
 	Assert.Type.Boolean(_emitClose, 'options.emitClose');
-	Assert.Integer(_start, 'options.start');
+
+	if (!Is.Integer(_start) && !Is.Type.Undefined) {
+		Ow.Invalid('options.start', 'Integer | undefined');
+	}
 
 	if (!Is.Integer(_end) && _end !== Infinity) {
 		Ow.Invalid('options.end', 'Integer | Infinity');
@@ -77,6 +80,9 @@ function normalizeOptions(options = {}) {
 
 	return _options;
 }
+
+const READ_BY_CURRENT_POSITION = Symbol('readByCurrentPosition');
+const READ_BY_POSITION = Symbol('readByPosition');
 
 export class ReadStream extends Readable {
 	#path = undefined;
@@ -112,6 +118,13 @@ export class ReadStream extends Readable {
 		} else {
 			this.#fetching = value;
 		}
+
+		if (Is.Integer(start)) {
+			this.#start = start;
+			this.#pos = start;
+		}
+
+		this.#end = end;
 	}
 
 	async _construct(callback) {
@@ -130,17 +143,34 @@ export class ReadStream extends Readable {
 		}
 	}
 
-	async _read(size) {
+	#start = undefined;
+	#end = Infinity;
+	#pos = undefined;
+
+	async [READ_BY_POSITION](size) {
+
+	}
+
+	async [READ_BY_CURRENT_POSITION](size) {
 		try {
 			const handle = this.#handle;
+			const finalSize = Math.min(size, this.#end - this.#bytesRead);
 			const alloced = Buffer.alloc(size);
-			const { buffer, bytesRead } = await handle.read(alloced, 0, size, null);
+			const { buffer, bytesRead } = await handle.read(alloced, 0, finalSize);
 
 			this.#bytesRead += bytesRead;
 			this.push(bytesRead > 0 ? buffer.slice(0, bytesRead) : null);
 		} catch (error) {
 			this.destroy(error);
 		}
+	}
+
+	async _read(size) {
+		console.log(size);
+
+		return Is.Type.Undefined(this.#start)
+			? this[READ_BY_CURRENT_POSITION](size)
+			: this[READ_BY_POSITION](size);
 	}
 
 	async _destroy(err, callback) {

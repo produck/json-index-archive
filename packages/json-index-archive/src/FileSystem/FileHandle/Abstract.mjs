@@ -33,6 +33,10 @@ export class AbstractFileHandle extends EventEmitter {
 	[MEMBER.SIZE] = 0;
 	[MEMBER.IS_FILE] = false;
 
+	get fd() {
+		return this[MEMBER.NATIVE_HANDLE].fd;
+	}
+
 	constructor(nativeHandle, isFile, offset, size) {
 		if (!(nativeHandle instanceof NativeFileHandle)) {
 			Ow.Invalid('handle', 'fs.FileHandle');

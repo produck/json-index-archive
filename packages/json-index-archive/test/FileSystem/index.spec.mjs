@@ -8,6 +8,7 @@ import IndexTreeDescribe from './Index/Tree.mjs';
 import IndexObjectDescribe from './Index/Object.mjs';
 import DirentDescribe from './Dirent.mjs';
 import FileHandlerDescribe from './FileHandle/index.mjs';
+import ReadStreamDescribe from './ReadStream.mjs';
 
 import { FileSystem } from '../../src/FileSystem/index.mjs';
 import { Dirent } from '../../src/FileSystem/Dirent.mjs';
@@ -27,6 +28,7 @@ describe('::FileSystem', function () {
 
 	describe('::Dirent', DirentDescribe);
 	describe('::FileHandle', FileHandlerDescribe);
+	describe('::ReadStream', ReadStreamDescribe);
 
 	describe('.pathname', function () {
 		it('should get pathname.', async function () {

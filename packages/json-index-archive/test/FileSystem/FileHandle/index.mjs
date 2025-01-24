@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import * as assert from 'node:assert/strict';
+import * as Consumer from 'node:stream/consumers';
 import { describe, it } from 'mocha';
 
 import { FileSystem } from '../../../src/FileSystem/index.mjs';
@@ -41,6 +42,69 @@ export default function Describe() {
 			});
 
 			assert.equal(stream.closed, true);
+		});
+
+		it('should close when stream end.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const handle = await jiar.open('/baz');
+			const stream = handle.createReadStream();
+
+			assert.notEqual(handle.fd, -1);
+			assert.ok(stream instanceof ReadStream);
+			assert.equal(stream.closed, false);
+			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122, 10]);
+			assert.equal(handle.fd, -1);
+		});
+
+		it('should get Buffer(0) when stream end.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const handle = await jiar.open('/baz');
+			const stream = handle.createReadStream({ autoClose: false });
+
+			assert.notEqual(handle.fd, -1);
+			assert.ok(stream instanceof ReadStream);
+			assert.equal(stream.closed, false);
+			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122, 10]);
+
+			const { bytesRead } = await handle.read();
+
+			assert.equal(bytesRead, 0);
+			assert.notEqual(handle.fd, -1);
+			await handle.close();
+			assert.equal(handle.fd, -1);
+			assert.equal(stream.closed, true);
+		});
+
+		it('should get Buffer(3) with end=3.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const handle = await jiar.open('/baz');
+
+			const stream = handle.createReadStream({
+				autoClose: false,
+				end: 3,
+			});
+
+			assert.equal(stream.closed, false);
+			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122]);
+		});
+
+		it('should get Buffer(1) with end=3 twice.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const handle = await jiar.open('/baz');
+
+			assert.deepEqual([...await Consumer.buffer(
+				handle.createReadStream({
+					autoClose: false,
+					end: 3,
+				}),
+			)], [98, 97, 122]);
+
+			assert.deepEqual([...await Consumer.buffer(
+				handle.createReadStream({
+					autoClose: false,
+					end: 3,
+				}),
+			)], [10]);
 		});
 	});
 
