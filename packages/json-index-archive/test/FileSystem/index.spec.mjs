@@ -7,9 +7,11 @@ import PathnameDescribe from './Pathname.mjs';
 import IndexTreeDescribe from './Index/Tree.mjs';
 import IndexObjectDescribe from './Index/Object.mjs';
 import DirentDescribe from './Dirent.mjs';
+import FileHandlerDescribe from './FileHandle/index.mjs';
 
 import { FileSystem } from '../../src/FileSystem/index.mjs';
 import { Dirent } from '../../src/FileSystem/Dirent.mjs';
+import { FileHandle } from '../../src/FileSystem/FileHandle/index.mjs';
 
 const __dirname = import.meta.dirname;
 const samplePathname = path.resolve(__dirname, 'sample.jiar');
@@ -23,6 +25,15 @@ describe('::FileSystem', function () {
 	});
 
 	describe('::Dirent', DirentDescribe);
+	describe('::FileHandle', FileHandlerDescribe);
+
+	describe('.pathname', function () {
+		it('should get pathname.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+
+			assert.equal(jiar.pathname, samplePathname);
+		});
+	});
 
 	describe('.archiveSize', function () {
 		it('should get archiveSize.', async function () {
@@ -87,15 +98,29 @@ describe('::FileSystem', function () {
 	});
 
 	describe('.open()', function () {
-		it('should get a FileHandle.', function () {
+		it('should get a FileHandle.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
+			const handle = await jiar.open('/');
 
+			assert.ok(handle instanceof FileHandle);
+			await handle.close();
 		});
 
-		it('should throw if bad pathname.', function () {
+		it('should throw if bad pathname.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			await assert.rejects(async () => await jiar.open(null), {
+				name: 'TypeError',
+				message: 'Invalid "pathname", one "string" expected.',
+			});
+
+			await assert.rejects(async () => await jiar.open('bad'), {
+				name: 'Error',
+				message: 'Bad pathname, should be POSIX absolute path.',
+			});
 		});
 
-		it('should throw if node NOT found.', function () {
+		it('should throw if node NOT found.', async function () {
 
 		});
 	});

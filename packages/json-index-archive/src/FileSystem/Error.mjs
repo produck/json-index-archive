@@ -5,8 +5,8 @@ export class JIARError extends Error {
 	}
 }
 
-export const ENOENT = pathname => {
-	const message = `no such file or directory, open '${pathname}'`;
+export const ENOENT = (pathname, operation) => {
+	const message = `no such file or directory, ${operation} '${pathname}'`;
 
 	return new JIARError(message, 'ENOENT');
 };

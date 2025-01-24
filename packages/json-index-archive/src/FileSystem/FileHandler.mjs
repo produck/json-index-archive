@@ -5,18 +5,26 @@ import * as StreamConsumers from 'node:stream/consumers';
 import * as Ow from '@produck/ow';
 import { Assert, Is } from '@produck/idiom';
 
-function normalizeReadOptions(options, buffer) {
+function normalizeReadOptions(options = {}) {
+	const buffer = Buffer.alloc(16384);
+	const offset = 0;
+
 	const _options = {
-		offset: 0,
-		length: buffer.byteLength,
+		buffer, offset,
+		length: buffer.byteLength - offset,
 		position: null,
 	};
 
 	const {
+		buffer: _buffer = _options.buffer,
 		offset: _offset = _options.offset,
 		length: _length = _options.length,
 		position: _position = _options.position,
 	} = options;
+
+	if (!Buffer.isBuffer(buffer)) {
+		Ow.Invalid('options.buffer', 'Buffer');
+	}
 
 	Assert.Integer(_offset, 'options.offset');
 	Assert.Integer(_length, 'options.length');
@@ -32,6 +40,11 @@ function normalizeReadOptions(options, buffer) {
 	if (_length < 0) {
 		Ow.Error.Range('The "options.length" should NOT less then 0.');
 	}
+
+	_options.buffer = _buffer;
+	_options.offset = _offset;
+	_options.length = _length;
+	_options.position = _position;
 
 	return _options;
 }
@@ -65,6 +78,56 @@ export function normalizeReadFileOptions(options) {
 	return _options;
 }
 
+const ReadArgsFormat = {
+	None: {
+		test: args => args.length === 0,
+		options: () => normalizeReadOptions(),
+	},
+	Buffer: {
+		test: args => args.length === 1 && Buffer.isBuffer(args[0]),
+		options: ([buffer]) => normalizeReadOptions({ buffer }),
+	},
+	Options: {
+		test: args => {
+			if (args.length !== 1) {
+				return false;
+			}
+
+			const [options] = args;
+
+			return Is.Type.Object(options) &&
+				!Is.Null(options) &&
+				!Buffer.isBuffer(options);
+		},
+		options: ([options]) => normalizeReadOptions(options),
+	},
+	BufferOptions: {
+		test: args => {
+			if (args.length !== 2) {
+				return false;
+			}
+
+			const [buffer, options] = args;
+
+			return Buffer.isBuffer(buffer) && Is.Type.Object(options) && !Is.Null(options);
+		},
+		options: ([buffer, options]) => normalizeReadOptions({ buffer, ...options }),
+	},
+};
+
+/** @returns {ReturnType<normalizeReadOptions>} */
+function argsOfReadToOptions(args) {
+	for (const name in ReadArgsFormat) {
+		const { test, options } = ReadArgsFormat[name];
+
+		if (test(args)) {
+			return options(args);
+		}
+	}
+
+	Ow.Error.Common('No matched arguments format.');
+}
+
 export class FileHandle extends EventEmitter {
 	#position = 0;
 	/** @type {fs.promises.FileHandle} */
@@ -84,12 +147,10 @@ export class FileHandle extends EventEmitter {
 		await this.#handle.close();
 	}
 
-	async read(buffer, options) {
-		if (!Buffer.isBuffer(buffer)) {
-			Ow.Invalid('buffer', 'Buffer');
-		}
-
-		const { offset, length, position } = normalizeReadOptions(options, buffer);
+	async read(...args) {
+		const {
+			buffer, offset, length, position,
+		} = argsOfReadToOptions(args);
 
 		const result = await this.#handle.read(buffer, {
 			offset,
