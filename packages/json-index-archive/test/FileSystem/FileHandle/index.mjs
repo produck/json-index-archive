@@ -8,6 +8,7 @@ import { FileHandle } from '../../../src/FileSystem/FileHandle/index.mjs';
 import { ReadStream } from '../../../src/FileSystem/ReadStream.mjs';
 
 import ReadDescribe from './read.mjs';
+import ReadFileDescribe from './readFile.mjs';
 
 const __dirname = import.meta.dirname;
 const samplePathname = path.resolve(__dirname, '../sample.jiar');
@@ -107,7 +108,5 @@ export default function Describe() {
 		});
 	});
 
-	describe('.readFile()', function () {
-
-	});
+	describe('.readFile()', ReadFileDescribe);
 }

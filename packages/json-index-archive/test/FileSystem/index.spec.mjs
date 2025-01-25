@@ -124,7 +124,12 @@ describe('::FileSystem', function () {
 		});
 
 		it('should throw if node NOT found.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			await assert.rejects(async () => await jiar.open('/not/existed'), {
+				name: 'Error',
+				message: 'no such file or directory, open \'/not/existed\'',
+			});
 		});
 	});
 
@@ -222,16 +227,19 @@ describe('::FileSystem', function () {
 	});
 
 	describe('.readFile()', function () {
-		it('should get a buffer.', function () {
+		it('should get a buffer.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
+			assert.equal(await jiar.readFile('/baz', 'utf8'), 'baz\n');
 		});
 
-		it('should throw if bad pathname.', function () {
+		it('should throw if bad pathname.', async function () {
+			const jiar = await FileSystem.mount(samplePathname);
 
-		});
-
-		it('should throw if bad options.', function () {
-
+			await assert.rejects(async () => await jiar.readFile(true), {
+				name: 'TypeError',
+				message: 'Invalid "pathname", one "string" expected.',
+			});
 		});
 	});
 
