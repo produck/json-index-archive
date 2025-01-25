@@ -10,7 +10,7 @@ export class FileNode extends AbstractNode {
 	[OFFSET] = 0;
 	[SIZE] = 0;
 
-	constructor(offset, size) {
+	constructor(offset, size, ...extension) {
 		Assert.Integer(offset, 'offset');
 		Assert.Integer(size, 'size');
 
@@ -22,7 +22,7 @@ export class FileNode extends AbstractNode {
 			Ow.Error.Range('Size MUST be > 0.');
 		}
 
-		super();
+		super(...extension);
 		this[OFFSET] = offset;
 		this[SIZE] = size;
 	}

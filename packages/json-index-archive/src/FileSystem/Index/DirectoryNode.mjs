@@ -7,6 +7,7 @@ import { AbstractNode } from './AbstractNode.mjs';
 import { FileNode } from './FileNode.mjs';
 
 const CHILDREN = Symbol('children');
+const EXTENSION = Symbol('extension');
 
 export const ORDER = {
 	DEFAULT: () => 0,

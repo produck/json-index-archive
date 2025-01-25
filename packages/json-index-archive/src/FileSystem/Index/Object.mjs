@@ -2,6 +2,14 @@ import * as Ow from '@produck/ow';
 import { Assert, Is } from '@produck/idiom';
 import * as Tree from './Tree.mjs';
 
+export const TYPE = { FILE: 0, DIRECTORY: 1 };
+
+export const NODE = {
+	TYPE: 0, NAME: 1,
+	DIRECTORY: { CHILDREN: 2, EXTEND: 3 },
+	FILE: { OFFSET: 2, SIZE: 3, EXTEND: 4 },
+};
+
 export function* build(object, node) {
 	Assert.Type.Object(object, 'object');
 
@@ -9,40 +17,46 @@ export function* build(object, node) {
 		Ow.Invalid('node', 'FileNode | DirectoryNode');
 	}
 
-	Assert.Array(object.children, '.children');
+	const children = object[NODE.DIRECTORY.CHILDREN];
 
-	for (const childObject of object.children) {
-		const { name, children } = childObject;
+	Assert.Array(children, `[${NODE.DIRECTORY.CHILDREN}]`);
 
-		Assert.Type.String(name, '.name');
+	for (const childTuple of children) {
+		const type = childTuple[NODE.TYPE];
+		const name = childTuple[NODE.NAME];
 
-		if (Is.Type.Undefined(children)) {
-			const { offset, size } = childObject;
+		Assert.Type.String(name, `[${NODE.NAME}]`);
 
-			Assert.Type.String(offset, '.offset');
-			Assert.Type.String(size, '.size');
+		if (type === TYPE.FILE) {
+			const offset = childTuple[NODE.FILE.OFFSET];
+			const size = childTuple[NODE.FILE.SIZE];
+
+			Assert.Type.String(offset, `[${NODE.FILE.OFFSET}]`);
+			Assert.Type.String(size, `[${NODE.FILE.SIZE}]`);
 
 			const offsetNumber = Number(offset);
 
 			if (Is.NaN(offsetNumber)) {
-				Ow.Error.Common('".offset" SHOULD NOT be NaN.');
+				Ow.Error.Common(`"${NODE.FILE.OFFSET}" SHOULD NOT be NaN.`);
 			}
 
 			const sizeNumber = Number(size);
 
 			if (Is.NaN(sizeNumber)) {
-				Ow.Error.Common('".size" SHOULD NOT be NaN.');
+				Ow.Error.Common(`"${NODE.FILE.SIZE}" SHOULD NOT be NaN.`);
 			}
 
-			const childNode = new Tree.FileNode(offsetNumber, sizeNumber);
+			const extension = childTuple[NODE.FILE.EXTEND];
+			const childNode = new Tree.FileNode(offsetNumber, sizeNumber, extension);
 
 			node.appendChild(name, childNode);
-			yield { ...childObject };
+			yield [...childTuple];
 		} else {
-			const childNode = new Tree.DirectoryNode();
+			const extension = childTuple[NODE.DIRECTORY.EXTEND];
+			const childNode = new Tree.DirectoryNode(extension);
 
 			node.appendChild(name, childNode);
-			yield * build(childObject, childNode);
+			yield * build(childTuple, childNode);
 		}
 	}
 }

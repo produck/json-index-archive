@@ -16,3 +16,4 @@ FileSystem.implement(IMLEMENT.CREATE_READ_STREAM, CreateReadStream);
 FileSystem.implement(IMLEMENT.READ_FILE, ReadFile);
 
 export { FileSystem } from './Constructor.mjs';
+export * as Index from './Index/index.mjs';

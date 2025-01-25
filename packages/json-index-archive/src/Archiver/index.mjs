@@ -1,13 +1,18 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Stream } from 'node:stream';
-import * as crypto from 'node:crypto';
 
 import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
 
+import * as FileSystem from '../FileSystem/index.mjs';
+import * as Extension from './Extension/index.mjs';
+
 const READDIR_OPTIONS = { withFileTypes: true };
 const NOT_AUTO_CLOSE = { autoClose: false };
+const { NODE, TYPE } = FileSystem.Index.Object;
+const FILE_HANDLERS = Symbol('fileHandlers');
+const DIRECTORY_HANDLERS = Symbol('directoryHandlers');
 
 function BY_TYPE_THEN_NAME(direntA, direntB) {
 	if (direntA.isDirectory() && direntB.isFile()) {
@@ -43,6 +48,8 @@ async function* visit(dirname) {
 	}
 }
 
+const TOP = 0;
+
 export class Archiver {
 	#root = '';
 
@@ -70,11 +77,9 @@ export class Archiver {
 		}
 	}
 
-	async buildIndex(fileHandler = () => {}) {
-		Assert.Type.Function(fileHandler, 'fileHandler');
-
+	async *buildIndex(root = [TYPE.DIRECTORY, '', []]) {
 		const direntStack = [null];
-		const directoryNodeStack = [{ name: '', children: [] }];
+		const directoryNodeStack = [root];
 
 		for await (const dirent of visit(this.#root)) {
 			if (dirent === direntStack[0]) {
@@ -84,24 +89,38 @@ export class Archiver {
 					directoryNodeStack.shift();
 				}
 			} else {
-				const currentNode = { name: dirent.name };
+				const currentNode = [];
+
+				currentNode[NODE.NAME] = dirent.name;
 
 				direntStack.unshift(dirent);
-				directoryNodeStack[0].children.push(currentNode);
+				directoryNodeStack[TOP][NODE.DIRECTORY.CHILDREN].push(currentNode);
 
 				if (dirent.isFile()) {
-					await fileHandler(dirent, currentNode);
+					currentNode[NODE.TYPE] = TYPE.FILE;
 				}
 
 				if (dirent.isDirectory()) {
-					currentNode.children = [];
+					currentNode[NODE.TYPE] = TYPE.DIRECTORY;
+					currentNode[NODE.DIRECTORY.CHILDREN] = [];
 					directoryNodeStack.unshift(currentNode);
 				}
+
+				yield [dirent, currentNode];
 			}
 		}
 
 		return directoryNodeStack[0];
 	}
+
+	[FILE_HANDLERS] = [
+		Extension.birthtime,
+		Extension.integrity,
+	];
+
+	[DIRECTORY_HANDLERS] = [
+		Extension.birthtime,
+	];
 
 	async archive(destination, mode = 0o666) {
 		Assert.Type.String(destination, 'destination');
@@ -124,30 +143,46 @@ export class Archiver {
 		await handle.write(sizeBuffer);
 
 		let offset = 0n;
+		const root = [TYPE.DIRECTORY, '', []];
 
-		const indexObject = await this.buildIndex(async (dirent, node) => {
+		for await (const [dirent, node] of this.buildIndex(root)) {
 			const pathname = path.join(dirent.parentPath, dirent.name);
-			const readStream = fs.createReadStream(pathname);
-			const writeStream = handle.createWriteStream(NOT_AUTO_CLOSE);
-			const hash = crypto.createHash('sha256');
-			let size = 0n;
+			const context = { pathname, dirent };
 
-			closing.push(writeStream);
-			node.offset = String(offset);
+			if (dirent.isFile()) {
+				const readStream = fs.createReadStream(pathname);
+				const writeStream = handle.createWriteStream(NOT_AUTO_CLOSE);
+				let size = 0n;
 
-			readStream.on('data', chunk => {
-				size += BigInt(chunk.length);
-				hash.update(chunk);
-			});
+				closing.push(writeStream);
+				node[NODE.FILE.OFFSET] = String(offset);
+				readStream.on('data', chunk => size += BigInt(chunk.length));
 
-			await Stream.promises.pipeline(readStream, writeStream);
-			node.sha256 = hash.digest('hex');
-			node.size = String(size);
-			offset += size;
-		});
+				const piping = Stream.promises.pipeline(readStream, writeStream);
+
+				Object.assign(context, { piping, readStream });
+
+				const toHandling = async handler => await handler(context);
+				const handlings = this[FILE_HANDLERS].map(toHandling);
+				const extension = await Promise.all([...handlings, piping]);
+
+				extension.pop();
+				node[NODE.FILE.EXTEND] = extension;
+				node[NODE.FILE.SIZE] = String(size);
+				offset += size;
+			}
+
+			if (dirent.isDirectory()) {
+				const toHandling = async handler => await handler(context);
+				const handlings = this[DIRECTORY_HANDLERS].map(toHandling);
+				const extension = await Promise.all(handlings);
+
+				node[NODE.DIRECTORY.EXTEND] = extension;
+			}
+		}
 
 		sizeBuffer[0] = offset;
-		await handle.write(JSON.stringify(indexObject));
+		await handle.write(JSON.stringify(root));
 		await handle.write(sizeBuffer, { position: 0 });
 
 		for (const stream of closing) {

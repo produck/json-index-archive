@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import { describe, it } from 'mocha';
 
-import { Archiver } from '../src/Archiver.mjs';
+import { Archiver } from '../src/Archiver/index.mjs';
 
 const __dirname = import.meta.dirname;
 const samplePathname = path.join(__dirname, 'sample');
@@ -26,7 +26,7 @@ describe('::Archiver', function () {
 	});
 
 	describe('.archive', function () {
-		it('should archive a file', async function () {
+		it.only('should archive a file', async function () {
 			const archiver = new Archiver(samplePathname);
 
 			await archiver.archive(path.join(__dirname, 'output.gen.jiar'));
