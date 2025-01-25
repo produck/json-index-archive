@@ -56,7 +56,7 @@ function normalizeOptions(options = {}) {
 	Assert.Type.Boolean(_autoClose, 'options.autoClose');
 	Assert.Type.Boolean(_emitClose, 'options.emitClose');
 
-	if (!Is.Integer(_start) && !Is.Type.Undefined) {
+	if (!Is.Integer(_start) && !Is.Type.Undefined(_start)) {
 		Ow.Invalid('options.start', 'Integer | undefined');
 	}
 
@@ -66,8 +66,42 @@ function normalizeOptions(options = {}) {
 
 	Assert.Integer(_highWaterMark, 'options.highWaterMark');
 
-	if (!Is.Type.Undefined(_signal) && (_signal instanceof AbortSignal)) {
+	if (!Is.Type.Undefined(_signal) && !(_signal instanceof AbortSignal)) {
 		Ow.Invalid('options.signal', 'undefined | AbortSignal');
+	}
+
+	if (_start < 0 || _start > Number.MAX_SAFE_INTEGER) {
+		Ow.Error.Range([
+			'The value of "start" is out of range.',
+			`It must be >= 0 && <= ${Number.MAX_SAFE_INTEGER}.`,
+			`Received ${_start}`,
+		].join(' '));
+	}
+
+	if (Is.Integer(_end)) {
+		if (_end < 0 || _end > Number.MAX_SAFE_INTEGER) {
+			Ow.Error.Range([
+				'The value of "end" is out of range.',
+				`It must be >= 0 && <= ${Number.MAX_SAFE_INTEGER}.`,
+				`Received ${_end}`,
+			].join(' '));
+		}
+
+		if (_start > _end) {
+			Ow.Error.Range([
+				'The value of "start" is out of range.',
+				`It must be <= "end" (here: ${_end}).`,
+				`Received ${_start}`,
+			].join(' '));
+		}
+	}
+
+	if (_highWaterMark < 0) {
+		Ow.Error.Range([
+			'The value of "highWaterMark" is out of range.',
+			'It must be >= 0.',
+			`Received ${_highWaterMark}`,
+		].join(' '));
 	}
 
 	_options.encoding = _encoding;
@@ -81,8 +115,27 @@ function normalizeOptions(options = {}) {
 	return _options;
 }
 
-const READ_BY_CURRENT_POSITION = Symbol('readByCurrentPosition');
-const READ_BY_POSITION = Symbol('readByPosition');
+const M = {
+	START: Symbol('#start'),
+	END: Symbol('#end'),
+	POSITION: Symbol('#position'),
+	BYTES_READ: Symbol('#bytesRead'),
+};
+
+async function readByCurrentPosition(size, handle) {
+	const finalSize = Math.min(size, this[M.END] - this[M.BYTES_READ]);
+	const alloced = Buffer.alloc(finalSize);
+
+	return await handle.read(alloced, 0);
+}
+
+async function readByPosition(size, handle) {
+	const position = this[M.START] + this[M.BYTES_READ];
+	const finalSize = Math.min(size, (this[M.END] + 1) - position);
+	const alloced = Buffer.alloc(finalSize);
+
+	return await handle.read(alloced, 0, finalSize, position);
+}
 
 export class ReadStream extends Readable {
 	#path = undefined;
@@ -91,10 +144,10 @@ export class ReadStream extends Readable {
 		return this.#path;
 	}
 
-	#bytesRead = 0;
+	[M.BYTES_READ] = 0;
 
 	get bytesRead() {
-		return this.#bytesRead;
+		return this[M.BYTES_READ];
 	}
 
 	#fetching;
@@ -106,9 +159,13 @@ export class ReadStream extends Readable {
 
 	constructor(descriptor, ...options) {
 		const { path, fetchFileHandle } = normalizeDescriptor(descriptor);
-		const { start, end, autoClose, ...streamOpts } = normalizeOptions(...options);
 
-		super({ ...streamOpts, autoDestroy: autoClose });
+		const {
+			start, end, autoClose,
+			...streamOptions
+		} = normalizeOptions(...options);
+
+		super({ ...streamOptions, autoDestroy: autoClose });
 		this.#path = path;
 
 		const value = fetchFileHandle();
@@ -120,22 +177,24 @@ export class ReadStream extends Readable {
 		}
 
 		if (Is.Integer(start)) {
-			this.#start = start;
-			this.#pos = start;
+			this[M.START] = start;
+			this[M.POSITION] = start;
+			this.#read = readByPosition;
+		} else {
+			this.#read = readByCurrentPosition;
 		}
 
-		this.#end = end;
+		this[M.END] = end;
 	}
 
 	async _construct(callback) {
 		try {
-			const handle = Is.Null(this.#handle)
-				? await this.#fetching
-				: this.#handle;
+			if (Is.Null(this.#handle)) {
+				this.#handle = await this.#fetching;
+			}
 
-			handle.on('close', () => this.destroy());
-			this.#handle = handle;
-			this.emit('open', handle);
+			this.#handle.on('close', () => this.destroy());
+			this.emit('open', this.#handle);
 			this.emit('ready');
 			callback();
 		} catch (error) {
@@ -143,46 +202,29 @@ export class ReadStream extends Readable {
 		}
 	}
 
-	#start = undefined;
-	#end = Infinity;
-	#pos = undefined;
+	[M.START] = undefined;
+	[M.END] = Infinity;
+	[M.POSITION] = undefined;
+	#read;
 
-	async [READ_BY_POSITION](size) {
-
-	}
-
-	async [READ_BY_CURRENT_POSITION](size) {
+	async _read(size) {
 		try {
-			const handle = this.#handle;
-			const finalSize = Math.min(size, this.#end - this.#bytesRead);
-			const alloced = Buffer.alloc(size);
-			const { buffer, bytesRead } = await handle.read(alloced, 0, finalSize);
+			const {bytesRead, buffer} = await this.#read(size, this.#handle);
 
-			this.#bytesRead += bytesRead;
+			this[M.BYTES_READ] += bytesRead;
 			this.push(bytesRead > 0 ? buffer.slice(0, bytesRead) : null);
 		} catch (error) {
 			this.destroy(error);
 		}
 	}
 
-	async _read(size) {
-		console.log(size);
-
-		return Is.Type.Undefined(this.#start)
-			? this[READ_BY_CURRENT_POSITION](size)
-			: this[READ_BY_POSITION](size);
-	}
-
 	async _destroy(err, callback) {
 		try {
-			if (err) {
-				callback(err);
-			}
-
 			if (!Is.Null(this.#handle)) {
 				await this.#handle.close();
-				callback();
 			}
+
+			callback(...(err ? [err] : []));
 		} catch (handleError) {
 			callback(handleError);
 		}

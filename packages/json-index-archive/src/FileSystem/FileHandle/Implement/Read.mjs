@@ -35,7 +35,7 @@ function normalizeOptions(options = {}) {
 		Ow.Invalid('options.position', 'null | Integer');
 	}
 
-	if (_offset < 0) {
+	if (_offset < 0 || _offset > Number.MAX_SAFE_INTEGER) {
 		Ow.Error.Range([
 			'The value of "offset" is out of range.',
 			`It must be >= 0 && <= ${Number.MAX_SAFE_INTEGER}.`,
@@ -144,8 +144,8 @@ function toOptions(args) {
 export default async (self, ...args) => {
 	const { buffer, offset, length, position } = toOptions(args);
 
-	const finalLength = Math.min(length, self[MEMBER.SIZE] - self[MEMBER.POSITION]);
 	const finalPosition = position === null ? self[MEMBER.POSITION] : position;
+	const finalLength = Math.min(length, self[MEMBER.SIZE] - finalPosition);
 
 	const result = await self[MEMBER.NATIVE_HANDLE].read(buffer, {
 		offset, length: finalLength,

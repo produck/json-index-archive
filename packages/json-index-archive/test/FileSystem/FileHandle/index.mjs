@@ -78,14 +78,11 @@ export default function Describe() {
 		it('should get Buffer(3) with end=3.', async function () {
 			const jiar = await FileSystem.mount(samplePathname);
 			const handle = await jiar.open('/baz');
-
-			const stream = handle.createReadStream({
-				autoClose: false,
-				end: 3,
-			});
+			const stream = handle.createReadStream({ end: 3 });
 
 			assert.equal(stream.closed, false);
 			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122]);
+			assert.equal(stream.closed, true);
 		});
 
 		it('should get Buffer(1) with end=3 twice.', async function () {
@@ -105,6 +102,8 @@ export default function Describe() {
 					end: 3,
 				}),
 			)], [10]);
+
+			await handle.close();
 		});
 	});
 
