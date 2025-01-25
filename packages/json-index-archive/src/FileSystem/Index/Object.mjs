@@ -10,40 +10,36 @@ export const NODE = {
 	FILE: { OFFSET: 2, SIZE: 3, EXTEND: 4 },
 };
 
-export function* build(object, node) {
-	Assert.Type.Object(object, 'object');
+export function* build(children, node) {
+	Assert.Array(children, `DirectoryTuple[${NODE.DIRECTORY.CHILDREN}]`);
 
 	if (!Tree.isNode(node)) {
 		Ow.Invalid('node', 'FileNode | DirectoryNode');
 	}
 
-	const children = object[NODE.DIRECTORY.CHILDREN];
-
-	Assert.Array(children, `[${NODE.DIRECTORY.CHILDREN}]`);
-
 	for (const childTuple of children) {
 		const type = childTuple[NODE.TYPE];
 		const name = childTuple[NODE.NAME];
 
-		Assert.Type.String(name, `[${NODE.NAME}]`);
+		Assert.Type.String(name, `Tuple[${NODE.NAME}]`);
 
 		if (type === TYPE.FILE) {
 			const offset = childTuple[NODE.FILE.OFFSET];
 			const size = childTuple[NODE.FILE.SIZE];
 
-			Assert.Type.String(offset, `[${NODE.FILE.OFFSET}]`);
-			Assert.Type.String(size, `[${NODE.FILE.SIZE}]`);
+			Assert.Type.String(offset, `FileTuple[${NODE.FILE.OFFSET}]`);
+			Assert.Type.String(size, `FileTuple[${NODE.FILE.SIZE}]`);
 
 			const offsetNumber = Number(offset);
 
 			if (Is.NaN(offsetNumber)) {
-				Ow.Error.Common(`"${NODE.FILE.OFFSET}" SHOULD NOT be NaN.`);
+				Ow.Error.Common(`"FileTuple[${NODE.FILE.OFFSET}]" SHOULD NOT be NaN.`);
 			}
 
 			const sizeNumber = Number(size);
 
 			if (Is.NaN(sizeNumber)) {
-				Ow.Error.Common(`"${NODE.FILE.SIZE}" SHOULD NOT be NaN.`);
+				Ow.Error.Common(`"FileTuple[${NODE.FILE.SIZE}]" SHOULD NOT be NaN.`);
 			}
 
 			const extension = childTuple[NODE.FILE.EXTEND];
@@ -51,12 +47,14 @@ export function* build(object, node) {
 
 			node.appendChild(name, childNode);
 			yield [...childTuple];
-		} else {
+		}
+
+		if (type === TYPE.DIRECTORY) {
 			const extension = childTuple[NODE.DIRECTORY.EXTEND];
 			const childNode = new Tree.DirectoryNode(extension);
 
 			node.appendChild(name, childNode);
-			yield * build(childTuple, childNode);
+			yield * build(childTuple[NODE.DIRECTORY.CHILDREN], childNode);
 		}
 	}
 }

@@ -12,6 +12,28 @@ import {
 	FILE_SIZE_BUFFER_BYTE_LENGTH,
 } from '../Abstract.mjs';
 
+const { NODE } = Index.Object;
+
+async function assertIntegrity(sha256, [, offset, size], handle) {
+	Assert.Type.String(sha256, 'sha256');
+
+	const start = FILE_SIZE_BUFFER_BYTE_LENGTH + Number(offset);
+	const end = start + Number(size) - 1;
+	const hash = crypto.createHash('sha256');
+	const stream = handle.createReadStream({ autoClose: false, start, end });
+
+	await Stream.promises.pipeline(stream, hash);
+
+	if (hash.digest('hex') !== sha256) {
+		Ow.Error.Common('File is broken.');
+	}
+};
+
+const EXTENSION_HANDLERS = [
+	() => {},
+	assertIntegrity,
+];
+
 /** @param {import('../Constructor.mjs').FileSystem} self */
 export default async (self) => {
 	const { [PATHNAME]: pathname } = self;
@@ -31,22 +53,18 @@ export default async (self) => {
 		position: FILE_SIZE_BUFFER_BYTE_LENGTH + Number(fileSize),
 	});
 
-	const indexObject = JSON.parse(indexBuffer.toString('utf-8'));
+	const children = JSON.parse(indexBuffer.toString('utf-8'));
 	const root = self[ROOT] = new Index.Tree.DirectoryNode();
 
-	for (const { offset, size, sha256 } of Index.Object.build(indexObject, root)) {
-		Assert.Type.String(sha256, '.sha256');
+	for (const fileTuple of Index.Object.build(children, root)) {
+		const extension = fileTuple[NODE.FILE.EXTEND];
+		const fileContext = fileTuple.slice(1, NODE.FILE.EXTEND);
 
-		const start = FILE_SIZE_BUFFER_BYTE_LENGTH + Number(offset);
-		const end = start + Number(size) - 1;
-		const hash = crypto.createHash('sha256');
-		const stream = handle.createReadStream({ autoClose: false, start, end });
-
-		await Stream.promises.pipeline(stream, hash);
-
-		if (hash.digest('hex') !== sha256) {
-			Ow.Error.Common('File is broken.');
+		async function toHandling(handler, index) {
+			return await handler(extension[index], fileContext, handle);
 		}
+
+		await Promise.all(EXTENSION_HANDLERS.map(toHandling));
 	}
 
 	handle.close();

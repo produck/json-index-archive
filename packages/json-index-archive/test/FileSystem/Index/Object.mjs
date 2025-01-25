@@ -5,90 +5,86 @@ import * as Index from '../../../src/FileSystem/Index/index.mjs';
 
 export default function Describe() {
 	describe('::build()', function () {
-		it('should throw bad object.', function () {
+		it('should throw bad DirectoryTuple[NODE.DIRECTORY.CHILDREN].', () => {
 			assert.throws(() => [...Index.Object.build('bad')], {
 				name: 'TypeError',
-				message: 'Invalid "object", one "object" expected.',
+				message: 'Invalid "DirectoryTuple[2]", one "Array" expected.',
 			});
 		});
 
-		it('should throw bad object.', function () {
-			assert.throws(() => [...Index.Object.build({ children: [] }, null)], {
+		it('should throw bad node.', () => {
+			assert.throws(() => [...Index.Object.build([], null)], {
 				name: 'TypeError',
 				message: 'Invalid "node", one "FileNode | DirectoryNode" expected.',
 			});
 		});
 
-		it('should throw if bad object.name.', function () {
-			assert.throws(() => [...Index.Object.build({
-				children: [{ name: null }],
-			}, new Index.Tree.DirectoryNode())], {
+		it('should throw if bad Tuple[NODE.NAME].', () => {
+			assert.throws(() => [...Index.Object.build([
+				[0, null],
+			], new Index.Tree.DirectoryNode())], {
 				name: 'TypeError',
-				message: 'Invalid ".name", one "string" expected.',
+				message: 'Invalid "Tuple[1]", one "string" expected.',
 			});
 		});
 
-		it('should throw if bad object.children.', function () {
-			assert.throws(() => [...Index.Object.build({
-				children: {},
-			}, new Index.Tree.DirectoryNode())], {
+		it('should throw if bad DirectoryTuple[NODE.DIRECTORY.CHILDREN].', () => {
+			assert.throws(() => [...Index.Object.build([
+				[1, 'foo', {}],
+			], new Index.Tree.DirectoryNode())], {
 				name: 'TypeError',
-				message: 'Invalid ".children", one "Array" expected.',
+				message: 'Invalid "DirectoryTuple[2]", one "Array" expected.',
 			});
 		});
 
-		it('should throw if bad object.offset.', function () {
-			assert.throws(() => [...Index.Object.build({
-				children: [{ name: 'foo', offset: null }],
-			}, new Index.Tree.DirectoryNode())], {
+		it('should throw if bad FileTuple[NODE.FILE.OFFSET].', () => {
+			assert.throws(() => [...Index.Object.build([
+				[0, 'foo', null],
+			], new Index.Tree.DirectoryNode())], {
 				name: 'TypeError',
-				message: 'Invalid ".offset", one "string" expected.',
+				message: 'Invalid "FileTuple[2]", one "string" expected.',
 			});
 		});
 
-		it('should throw if bad object.size.', function () {
-			assert.throws(() => [...Index.Object.build({
-				children: [{ name: 'foo', offset: '10', size: null }],
-			}, new Index.Tree.DirectoryNode())], {
+		it('should throw if bad FileTuple[NODE.FILE.SIZE].', () => {
+			assert.throws(() => [...Index.Object.build([
+				[0, 'foo', '10', null],
+			], new Index.Tree.DirectoryNode())], {
 				name: 'TypeError',
-				message: 'Invalid ".size", one "string" expected.',
+				message: 'Invalid "FileTuple[3]", one "string" expected.',
 			});
 		});
 
-		it('should throw if object.offset is NaN.', function () {
-			assert.throws(() => [...Index.Object.build({
-				children: [{ name: 'foo', offset: 'bad', size: 'bad' }],
-			}, new Index.Tree.DirectoryNode())], {
+		it('should throw if FileTuple[NODE.FILE.OFFSET] is NaN.', () => {
+			assert.throws(() => [...Index.Object.build([
+				[0, 'foo', 'bad', 'bad'],
+			], new Index.Tree.DirectoryNode())], {
 				name: 'Error',
-				message: '".offset" SHOULD NOT be NaN.',
+				message: '"FileTuple[2]" SHOULD NOT be NaN.',
 			});
 		});
 
-		it('should throw if object.size is NaN.', function () {
-			assert.throws(() => [...Index.Object.build({
-				children: [{ name: 'foo', offset: '10', size: 'bad' }],
-			}, new Index.Tree.DirectoryNode())], {
+		it('should throw if FileTuple[NODE.FILE.SIZE] is NaN.', () => {
+			assert.throws(() => [...Index.Object.build([
+				[0, 'foo', '10', 'bad'],
+			], new Index.Tree.DirectoryNode())], {
 				name: 'Error',
-				message: '".size" SHOULD NOT be NaN.',
+				message: '"FileTuple[3]" SHOULD NOT be NaN.',
 			});
 		});
 
-		it('should build a tree.', function () {
+		it('should build a tree.', () => {
 			const root = new Index.Tree.DirectoryNode();
 			const list = [];
 
-			for (const object of Index.Object.build({
-				name: '', children: [{
-					name: 'foo', children: [{
-						name: 'bar', offset: '0', size: '10',
-					}],
-				}, {
-					name: 'bar', children: [],
-				}, {
-					name: 'baz', offset: '0', size: '11',
-				}],
-			}, root)) {
-				list.push(object);
+			for (const fileTuple of Index.Object.build([
+				[1, 'foo', [
+					[0, 'bar', '0', '10'],
+				]],
+				[1, 'bar', []],
+				[0, 'baz', '0', '11'],
+			], root)) {
+				list.push(fileTuple);
 			}
 
 			assert.equal(list.length, 2);

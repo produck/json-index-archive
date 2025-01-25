@@ -42,7 +42,7 @@ describe('::FileSystem', function () {
 		it('should get archiveSize.', async function () {
 			const jiarFS = await FileSystem.mount(samplePathname);
 
-			assert.equal(jiarFS.archiveSize, 714);
+			assert.equal(jiarFS.archiveSize, 637);
 		});
 	});
 
@@ -58,7 +58,7 @@ describe('::FileSystem', function () {
 		it('should get indexSize.', async function () {
 			const jiarFS = await FileSystem.mount(samplePathname);
 
-			assert.equal(jiarFS.indexSize, 686);
+			assert.equal(jiarFS.indexSize, 609);
 		});
 	});
 
@@ -290,7 +290,7 @@ describe('::FileSystem', function () {
 
 			await assert.rejects(() => FileSystem.mount(pathname), {
 				name: 'TypeError',
-				message: 'Invalid ".sha256", one "string" expected.',
+				message: 'Invalid "sha256", one "string" expected.',
 			});
 		});
 

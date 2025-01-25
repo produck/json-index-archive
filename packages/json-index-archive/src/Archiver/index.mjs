@@ -77,16 +77,16 @@ export class Archiver {
 		}
 	}
 
-	async *buildIndex(root = [TYPE.DIRECTORY, '', []]) {
+	async *buildIndex(rootChildren = []) {
 		const direntStack = [null];
-		const directoryNodeStack = [root];
+		const childrenStack = [rootChildren];
 
 		for await (const dirent of visit(this.#root)) {
 			if (dirent === direntStack[0]) {
 				direntStack.shift();
 
 				if (dirent.isDirectory()) {
-					directoryNodeStack.shift();
+					childrenStack.shift();
 				}
 			} else {
 				const currentNode = [];
@@ -94,23 +94,25 @@ export class Archiver {
 				currentNode[NODE.NAME] = dirent.name;
 
 				direntStack.unshift(dirent);
-				directoryNodeStack[TOP][NODE.DIRECTORY.CHILDREN].push(currentNode);
+				childrenStack[TOP].push(currentNode);
 
 				if (dirent.isFile()) {
 					currentNode[NODE.TYPE] = TYPE.FILE;
 				}
 
 				if (dirent.isDirectory()) {
+					const children = [];
+
 					currentNode[NODE.TYPE] = TYPE.DIRECTORY;
-					currentNode[NODE.DIRECTORY.CHILDREN] = [];
-					directoryNodeStack.unshift(currentNode);
+					currentNode[NODE.DIRECTORY.CHILDREN] = children;
+					childrenStack.unshift(children);
 				}
 
 				yield [dirent, currentNode];
 			}
 		}
 
-		return directoryNodeStack[0];
+		return childrenStack[0];
 	}
 
 	[FILE_HANDLERS] = [
@@ -143,9 +145,9 @@ export class Archiver {
 		await handle.write(sizeBuffer);
 
 		let offset = 0n;
-		const root = [TYPE.DIRECTORY, '', []];
+		const children = [];
 
-		for await (const [dirent, node] of this.buildIndex(root)) {
+		for await (const [dirent, node] of this.buildIndex(children)) {
 			const pathname = path.join(dirent.parentPath, dirent.name);
 			const context = { pathname, dirent };
 
@@ -182,7 +184,7 @@ export class Archiver {
 		}
 
 		sizeBuffer[0] = offset;
-		await handle.write(JSON.stringify(root));
+		await handle.write(JSON.stringify(children));
 		await handle.write(sizeBuffer, { position: 0 });
 
 		for (const stream of closing) {

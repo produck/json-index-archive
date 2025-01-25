@@ -26,7 +26,7 @@ describe('::Archiver', function () {
 	});
 
 	describe('.archive', function () {
-		it.only('should archive a file', async function () {
+		it('should archive a file', async function () {
 			const archiver = new Archiver(samplePathname);
 
 			await archiver.archive(path.join(__dirname, 'output.gen.jiar'));

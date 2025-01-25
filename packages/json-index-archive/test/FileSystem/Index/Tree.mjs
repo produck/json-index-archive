@@ -73,6 +73,14 @@ export default function Describe() {
 			});
 		});
 
+		describe('.extension', function () {
+			it('should get a [birthtime, sha256]', () => {
+				const node = new FileNode(10, 20, [1, 'sha256']);
+
+				assert.deepEqual(node.extension, [1, 'sha256']);
+			});
+		});
+
 		describe('::isNode', function () {
 			it('should get true.', function () {
 				assert.equal(FileNode.isNode(new FileNode(0, 0)), true);
