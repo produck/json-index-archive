@@ -38,27 +38,12 @@ export class AbstractFileHandle extends EventEmitter {
 	}
 
 	constructor(nativeHandle, isFile, offset, size) {
-		if (!(nativeHandle instanceof NativeFileHandle)) {
-			Ow.Invalid('handle', 'fs.FileHandle');
-		}
-
 		Assert.Type.Boolean(isFile, 'isFile');
 
 		super();
 		this[MEMBER.IS_FILE] = isFile;
 
 		if (isFile) {
-			Assert.Integer(offset, 'offset');
-			Assert.Integer(size, 'size');
-
-			if (offset < 0) {
-				Ow.Error.Range('The "offset" should NOT < 0.');
-			}
-
-			if (size < 0) {
-				Ow.Error.Range('The "size" should NOT < 0.');
-			}
-
 			this[MEMBER.OFFSET] = offset;
 			this[MEMBER.SIZE] = size;
 		}

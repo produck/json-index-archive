@@ -1,15 +1,8 @@
-import * as Ow from '@produck/ow';
-import { AbstractFileSystem, IMLEMENT } from './Abstract.mjs';
+import { AbstractFileSystem } from './Abstract.mjs';
 
 export class FileSystem extends AbstractFileSystem {}
 
-const symbols = Object.values(IMLEMENT);
-
 export function implement(name, method) {
-	if (!symbols.includes(name)) {
-		Ow.Error.Common('Bad symbol as member name to implement.');
-	}
-
 	FileSystem.prototype[name] = function (...args) {
 		return method(this, ...args);
 	};
