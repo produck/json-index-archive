@@ -3,8 +3,6 @@ import { EventEmitter } from 'node:events';
 import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
 
-const NativeFileHandle = (await fs.promises.open('/')).constructor;
-
 export const MEMBER = {
 	POSITION: Symbol('position'),
 	NATIVE_HANDLE: Symbol('nativeHandle'),
