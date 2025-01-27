@@ -1,20 +1,33 @@
 {
-  "name": "@produck/json-index-archive",
-  "version": "0.0.0",
-  "main": "src/index.mjs",
-  "scripts": {
-    "test": "mocha \"**/*.spec.mjs\" -t 999999999"
-  },
-  "keywords": [
-    "archive",
-    "file-format",
-    "json-index"
-  ],
-  "author": "ChaosLee",
-  "license": "MIT",
-  "description": "",
-  "dependencies": {
-    "@produck/idiom": "^0.4.1",
-    "@produck/ow": "^0.1.2"
-  }
+	"name": "@produck/json-index-archive",
+	"version": "0.0.0",
+	"files": [
+		"src",
+		"tsconfig.json"
+	],
+	"main": "src/index.mjs",
+	"type": "module",
+	"types": "src/index.d.ts",
+	"exports": {
+		"import": "./src/index.mjs",
+		"require": "./src/index.gen.cjs",
+		"types": "./src/index.d.ts"
+	},
+	"scripts": {
+		"test": "mocha \"**/*.spec.mjs\" -t 999999999",
+		"build": "rollup -c script/rollup.config.mjs",
+		"prepublishOnly": "npm run build"
+	},
+	"keywords": [
+		"archive",
+		"file-format",
+		"json-index"
+	],
+	"author": "ChaosLee",
+	"license": "MIT",
+	"description": "",
+	"dependencies": {
+		"@produck/idiom": "^0.4.1",
+		"@produck/ow": "^0.1.2"
+	}
 }

@@ -1,2 +1,2 @@
-export { Archiver } from './Archiver.mjs';
+export { Archiver } from './Archiver/index.mjs';
 export { FileSystem } from './FileSystem/index.mjs';

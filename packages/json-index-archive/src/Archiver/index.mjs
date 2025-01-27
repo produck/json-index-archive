@@ -144,7 +144,7 @@ export class Archiver {
 
 		await handle.write(sizeBuffer);
 
-		let offset = 0n;
+		let offset = 0;
 		const children = [];
 
 		for await (const [dirent, node] of this.buildIndex(children)) {
@@ -154,11 +154,11 @@ export class Archiver {
 			if (dirent.isFile()) {
 				const readStream = fs.createReadStream(pathname);
 				const writeStream = handle.createWriteStream(NOT_AUTO_CLOSE);
-				let size = 0n;
+				let size = 0;
 
 				closing.push(writeStream);
 				node[NODE.FILE.OFFSET] = String(offset);
-				readStream.on('data', chunk => size += BigInt(chunk.length));
+				readStream.on('data', chunk => size += chunk.length);
 
 				const piping = Stream.promises.pipeline(readStream, writeStream);
 
@@ -183,14 +183,15 @@ export class Archiver {
 			}
 		}
 
-		sizeBuffer[0] = offset;
+		sizeBuffer[0] = BigInt(offset);
 		await handle.write(JSON.stringify(children));
 		await handle.write(sizeBuffer, { position: 0 });
 
 		for (const stream of closing) {
-			stream.close();
+			stream.destroy();
 		}
 
-		handle.close();
+		globalThis.f = handle;
+		await handle.close();
 	}
 }
