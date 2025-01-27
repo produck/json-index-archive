@@ -10,7 +10,7 @@ const meta = require('../package.json');
 const BANNER =
 	'/*!\n' +
 	` * ${meta.name} v${meta.version}\n` +
-	` * (c) 2023-${new Date().getFullYear()} ChaosLee\n` +
+	` * (c) 2024-${new Date().getFullYear()} ChaosLee\n` +
 	` * Released under the ${meta.license} License.\n` +
 	' */';
 
@@ -30,9 +30,10 @@ export default moduleList.map(config => {
 	return defineConfig({
 		input: path.resolve('src/index.mjs'),
 		treeshake: 'smallest',
-		external: {
-
-		},
+		external: [
+			...Object.keys(meta.dependencies),
+			/^node:/,
+		],
 		output: {
 			interop: 'esModule',
 			file: config.output,

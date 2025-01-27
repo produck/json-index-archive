@@ -2,8 +2,6 @@ import { Readable } from 'node:stream';
 import * as Ow from '@produck/ow';
 import { Assert, Is } from '@produck/idiom';
 
-import { FileHandle } from './FileHandle/index.mjs';
-
 function normalizeDescriptor(descriptor) {
 	const _descriptor = {
 		path: undefined,
@@ -170,10 +168,10 @@ export class ReadStream extends Readable {
 
 		const value = fetchFileHandle();
 
-		if (value instanceof FileHandle) {
-			this.#handle = value;
-		} else {
+		if (value instanceof Promise) {
 			this.#fetching = value;
+		} else {
+			this.#handle = value;
 		}
 
 		if (Is.Integer(start)) {

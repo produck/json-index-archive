@@ -1,4 +1,3 @@
-import * as fs from 'node:fs';
 import { EventEmitter } from 'node:events';
 import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';

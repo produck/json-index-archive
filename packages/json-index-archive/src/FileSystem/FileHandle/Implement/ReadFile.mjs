@@ -1,4 +1,4 @@
-import * as StreamConsumer from 'stream/consumers';
+import * as StreamConsumer from 'node:stream/consumers';
 import * as Ow from '@produck/ow';
 import { Is } from '@produck/idiom';
 
