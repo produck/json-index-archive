@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as Stream from 'node:stream';
+import * as StreamConsumer from 'node:stream/consumers';
 import * as crypto from 'node:crypto';
 
 import * as Ow from '@produck/ow';
@@ -47,12 +48,13 @@ export default async (self) => {
 	await handle.read(fileSizeBuffer);
 
 	const fileSize = self[FILE_SIZE] = fileSizeBuffer[0];
-	const indexBuffer = Buffer.allocUnsafe(self.indexSize);
+	const indexStart = FILE_SIZE_BUFFER_BYTE_LENGTH + Number(fileSize);
 
-	await handle.read(indexBuffer, {
-		position: FILE_SIZE_BUFFER_BYTE_LENGTH + Number(fileSize),
+	const readIndexStream = handle.createReadStream({
+		start: indexStart, autoClose: false,
 	});
 
+	const indexBuffer = await StreamConsumer.buffer(readIndexStream);
 	const children = JSON.parse(indexBuffer.toString('utf-8'));
 	const root = self[ROOT] = new Index.Tree.DirectoryNode();
 
@@ -67,5 +69,5 @@ export default async (self) => {
 		await Promise.all(EXTENSION_HANDLERS.map(toHandling));
 	}
 
-	handle.close();
+	await handle.close();
 };

@@ -3,12 +3,14 @@ import { Assert } from '@produck/idiom';
 
 import { AbstractNode } from './AbstractNode.mjs';
 
-const SIZE = Symbol('size');
-const OFFSET = Symbol('offset');
+export const MEMBER = {
+	SIZE: Symbol('size'),
+	OFFSET: Symbol('offset'),
+};
 
 export class FileNode extends AbstractNode {
-	[OFFSET] = 0;
-	[SIZE] = 0;
+	[MEMBER.OFFSET] = 0;
+	[MEMBER.SIZE] = 0;
 
 	constructor(offset, size, ...extension) {
 		Assert.Integer(offset, 'offset');
@@ -23,15 +25,15 @@ export class FileNode extends AbstractNode {
 		}
 
 		super(...extension);
-		this[OFFSET] = offset;
-		this[SIZE] = size;
+		this[MEMBER.OFFSET] = offset;
+		this[MEMBER.SIZE] = size;
 	}
 
 	get offset() {
-		return this[OFFSET];
+		return this[MEMBER.OFFSET];
 	}
 
 	get size() {
-		return this[SIZE];
+		return this[MEMBER.SIZE];
 	}
 }

@@ -21,6 +21,7 @@ export const IMLEMENT = {
 	READDIR: Symbol('_readdir'),
 	READ_FILE: Symbol('_readFile'),
 	CREATE_READ_STREAM: Symbol('_createReadStream'),
+	STAT: Symbol('_stat'),
 };
 
 const RTTF = [() => true, () => false];
@@ -72,6 +73,12 @@ export class AbstractFileSystem {
 		Pathname.assert(pathname);
 
 		return this[IMLEMENT.OPEN](pathname);
+	}
+
+	stat(pathname) {
+		Pathname.assert(pathname);
+
+		return this[IMLEMENT.STAT](pathname);
 	}
 
 	readdir(pathname, ...options) {
