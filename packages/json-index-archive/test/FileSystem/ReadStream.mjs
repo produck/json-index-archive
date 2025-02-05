@@ -163,14 +163,14 @@ export default function Describe() {
 			const stream = jiar.createReadStream('/baz');
 			const buffer = await StreamConsumers.buffer(stream);
 
-			assert.deepEqual([...buffer], [98, 97, 122, 10]);
+			assert.deepEqual([...buffer], [98, 97, 122, 53, 10]);
 		});
 
 		it('should get a EOF from stream if comsuming again.', async function () {
 			const jiar = await FileSystem.mount(samplePathname);
 			const stream = jiar.createReadStream('/baz');
 
-			assert.deepEqual([...await StreamConsumers.buffer(stream)], [98, 97, 122, 10]);
+			assert.deepEqual([...await StreamConsumers.buffer(stream)], [98, 97, 122, 53, 10]);
 			assert.deepEqual([...await StreamConsumers.buffer(stream)], []);
 			assert.equal(stream.read(), null);
 		});
@@ -238,14 +238,14 @@ export default function Describe() {
 				start: 1, highWaterMark: 2,
 			});
 
-			assert.deepEqual([...await StreamConsumers.buffer(stream)], [97, 122, 10]);
+			assert.deepEqual([...await StreamConsumers.buffer(stream)], [97, 122 ,53, 10]);
 		});
 
 		it('should get a buffer(0), start=3 highWaterMark=2', async function () {
 			const jiar = await FileSystem.mount(samplePathname);
 
 			const stream = jiar.createReadStream('/baz', {
-				start: 4, highWaterMark: 2,
+				start: 5, highWaterMark: 2,
 			});
 
 			assert.deepEqual([...await StreamConsumers.buffer(stream)], []);

@@ -53,7 +53,7 @@ export default function Describe() {
 			assert.notEqual(handle.fd, -1);
 			assert.ok(stream instanceof ReadStream);
 			assert.equal(stream.closed, false);
-			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122, 10]);
+			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122, 53, 10]);
 			assert.equal(handle.fd, -1);
 		});
 
@@ -65,7 +65,7 @@ export default function Describe() {
 			assert.notEqual(handle.fd, -1);
 			assert.ok(stream instanceof ReadStream);
 			assert.equal(stream.closed, false);
-			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122, 10]);
+			assert.deepEqual([...await Consumer.buffer(stream)], [98, 97, 122, 53, 10]);
 
 			const { bytesRead } = await handle.read();
 
@@ -102,7 +102,7 @@ export default function Describe() {
 					autoClose: false,
 					end: 3,
 				}),
-			)], [10]);
+			)], [53, 10]);
 
 			await handle.close();
 		});

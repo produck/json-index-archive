@@ -8,12 +8,11 @@ import { Assert } from '@produck/idiom';
 
 import * as Index from '../Index/index.mjs';
 
-import {
-	PATHNAME, ARCHIVE_SIZE, FILE_SIZE, ROOT,
-	FILE_SIZE_BUFFER_BYTE_LENGTH,
-} from '../Abstract.mjs';
+import { PATHNAME, ARCHIVE_SIZE, FILE_SIZE, ROOT } from '../Abstract.mjs';
+import * as FileHandler from '../FileHandle/index.mjs';
 
 const { NODE } = Index.Object;
+const { FILE_SIZE_BUFFER_BYTE_LENGTH } = FileHandler.constants;
 
 async function assertIntegrity(sha256, [, offset, size], handle) {
 	Assert.Type.String(sha256, 'sha256');

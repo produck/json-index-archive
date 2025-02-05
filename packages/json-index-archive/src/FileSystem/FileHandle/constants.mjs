@@ -1,0 +1,2 @@
+export const FILE_SIZE_BUFFER_BYTE_LENGTH = 8;
+export const DEFAULT_BUFFER_BYTE_LENGTH = 1 << 14;

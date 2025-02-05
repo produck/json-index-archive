@@ -45,7 +45,7 @@ describe('::FileSystem', function () {
 		it('should get archiveSize.', async function () {
 			const jiarFS = await FileSystem.mount(samplePathname);
 
-			assert.equal(jiarFS.archiveSize, 637);
+			assert.equal(jiarFS.archiveSize, 643);
 		});
 	});
 
@@ -53,7 +53,7 @@ describe('::FileSystem', function () {
 		it('should get fileSize.', async function () {
 			const jiarFS = await FileSystem.mount(samplePathname);
 
-			assert.equal(jiarFS.fileSize, 20n);
+			assert.equal(jiarFS.fileSize, 25n);
 		});
 	});
 
@@ -61,7 +61,7 @@ describe('::FileSystem', function () {
 		it('should get indexSize.', async function () {
 			const jiarFS = await FileSystem.mount(samplePathname);
 
-			assert.equal(jiarFS.indexSize, 609);
+			assert.equal(jiarFS.indexSize, 610);
 		});
 	});
 
@@ -264,7 +264,7 @@ describe('::FileSystem', function () {
 		it('should get a buffer.', async function () {
 			const jiar = await FileSystem.mount(samplePathname);
 
-			assert.equal(await jiar.readFile('/baz', 'utf8'), 'baz\n');
+			assert.equal(await jiar.readFile('/baz', 'utf8'), 'baz5\n');
 		});
 
 		it('should throw if bad pathname.', async function () {

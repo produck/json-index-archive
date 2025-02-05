@@ -12,7 +12,7 @@ export default function Describe() {
 		const jiar = await FileSystem.mount(samplePathname);
 		const handle = await jiar.open('/baz');
 
-		assert.deepEqual([...await handle.readFile()], [98, 97, 122, 10]);
+		assert.deepEqual([...await handle.readFile()], [98, 97, 122, 53, 10]);
 	});
 
 	it('should get remained bytes.', async function () {
@@ -20,7 +20,7 @@ export default function Describe() {
 		const handle = await jiar.open('/baz');
 
 		await handle.read(Buffer.alloc(1));
-		assert.deepEqual([...await handle.readFile(null)], [97, 122, 10]);
+		assert.deepEqual([...await handle.readFile(null)], [97, 122, 53, 10]);
 	});
 
 	it('should throw if bad args[0].', async function () {
@@ -67,6 +67,6 @@ export default function Describe() {
 		const jiar = await FileSystem.mount(samplePathname);
 		const handle = await jiar.open('/baz');
 
-		assert.deepEqual(await handle.readFile('utf8'), 'baz\n');
+		assert.deepEqual(await handle.readFile('utf8'), 'baz5\n');
 	});
 }

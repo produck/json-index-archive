@@ -38,8 +38,8 @@ export default function Describe() {
 			const handle = await jiar.open('/baz');
 			const { bytesRead, buffer } = await handle.read();
 
-			assert.equal(bytesRead, 4);
-			assert.deepEqual([...buffer.slice(0, 4)], [98, 97, 122, 10]);
+			assert.equal(bytesRead, 5);
+			assert.deepEqual([...buffer.slice(0, 5)], [...Buffer.from('baz5\n')]);
 			await handle.close();
 		});
 
@@ -66,10 +66,10 @@ export default function Describe() {
 		it('should get all data.', async function () {
 			const jiar = await FileSystem.mount(samplePathname);
 			const handle = await jiar.open('/baz');
-			const { buffer, bytesRead } = await handle.read(Buffer.alloc(4));
+			const { buffer, bytesRead } = await handle.read(Buffer.alloc(5));
 
-			assert.equal(bytesRead, 4);
-			assert.deepEqual([...buffer], [98, 97, 122, 10]);
+			assert.equal(bytesRead, 5);
+			assert.deepEqual([...buffer], [...Buffer.from('baz5\n')]);
 
 			await handle.close();
 		});
@@ -78,7 +78,7 @@ export default function Describe() {
 			const jiar = await FileSystem.mount(samplePathname);
 			const handle = await jiar.open('/baz');
 
-			await handle.read(Buffer.alloc(4));
+			await handle.read(Buffer.alloc(5));
 
 			const { buffer, bytesRead } = await handle.read(Buffer.alloc(4));
 
@@ -92,7 +92,7 @@ export default function Describe() {
 			const jiar = await FileSystem.mount(samplePathname);
 			const handle = await jiar.open('/baz');
 
-			for (const expected of [98, 97, 122, 10]) {
+			for (const expected of [...Buffer.from('baz5\n')]) {
 				const { bytesRead, buffer } = await handle.read(Buffer.alloc(1));
 
 				assert.equal(bytesRead, 1);
@@ -222,7 +222,7 @@ export default function Describe() {
 			});
 
 			assert.equal(bytesRead, 3);
-			assert.deepEqual([...buffer], [0, 97, 122, 10, 0, 0]);
+			assert.deepEqual([...buffer], [0, 97, 122, 53, 0, 0]);
 			await handle.close();
 		});
 	});
@@ -272,10 +272,10 @@ export default function Describe() {
 				const jiar = await FileSystem.mount(samplePathname);
 				const handle = await jiar.open('/baz');
 
-				const { buffer, bytesRead } = await handle.read(Buffer.alloc(6), 1);
+				const { buffer, bytesRead } = await handle.read(Buffer.alloc(7), 1);
 
-				assert.equal(bytesRead, 4);
-				assert.deepEqual([...buffer], [0, 98, 97, 122, 10, 0]);
+				assert.equal(bytesRead, 5);
+				assert.deepEqual([...buffer], [0, 98, 97, 122, 53, 10, 0]);
 				await handle.close();
 			});
 		});
@@ -400,7 +400,7 @@ export default function Describe() {
 			} = await handle.read(Buffer.alloc(6), 1, 4, null);
 
 			assert.equal(bytesRead, 4);
-			assert.deepEqual([...buffer], [0, 98, 97, 122, 10, 0]);
+			assert.deepEqual([...buffer], [0, 98, 97, 122, 53, 0]);
 			await handle.close();
 		});
 	});

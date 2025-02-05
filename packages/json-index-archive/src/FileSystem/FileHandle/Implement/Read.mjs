@@ -2,7 +2,10 @@ import * as Ow from '@produck/ow';
 import { Assert, Is } from '@produck/idiom';
 import { MEMBER } from '../Abstract.mjs';
 
-const DEFAULT_BUFFER_BYTE_LENGTH = 1 << 14;
+import {
+	DEFAULT_BUFFER_BYTE_LENGTH,
+	FILE_SIZE_BUFFER_BYTE_LENGTH,
+} from '../constants.mjs';
 
 function normalizeOptions(options = {}) {
 	const _options = {
@@ -149,7 +152,7 @@ export default async (self, ...args) => {
 
 	const result = await self[MEMBER.NATIVE_HANDLE].read(buffer, {
 		offset, length: finalLength,
-		position: self[MEMBER.OFFSET] + finalPosition,
+		position: self[MEMBER.OFFSET] + FILE_SIZE_BUFFER_BYTE_LENGTH + finalPosition,
 	});
 
 	if (Is.Null(position)) {

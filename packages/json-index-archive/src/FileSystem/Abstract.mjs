@@ -5,14 +5,14 @@ import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
 
 import { Tree } from './Index/index.mjs';
+import * as FileHandler from './FileHandle/index.mjs';
 import * as Pathname from './Pathname.mjs';
 
 export const PATHNAME = Symbol('pathname');
 export const ROOT = Symbol('root');
 export const ARCHIVE_SIZE = Symbol('archiveSize');
 export const FILE_SIZE = Symbol('fileSize');
-
-export const FILE_SIZE_BUFFER_BYTE_LENGTH = 8;
+const { FILE_SIZE_BUFFER_BYTE_LENGTH } = FileHandler.constants;
 
 export const IMLEMENT = {
 	SYNC: Symbol('_sync'),
