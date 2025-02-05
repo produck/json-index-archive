@@ -17,16 +17,16 @@
 	],
 	"devDependencies": {
 		"@eslint/js": "^9.19.0",
-		"@produck/eslint-rules": "^0.2.4",
+		"@produck/eslint-rules": "^0.2.5",
 		"@rollup/plugin-terser": "^0.4.4",
 		"@types/mocha": "^10.0.10",
-		"@types/node": "^22.10.10",
+		"@types/node": "^22.13.1",
 		"c8": "^10.1.3",
 		"eslint": "^9.19.0",
 		"globals": "^15.14.0",
 		"lerna": "^8.1.9",
 		"mocha": "^11.1.0",
-		"rollup": "^4.32.0",
-		"typescript-eslint": "^8.21.0"
+		"rollup": "^4.34.2",
+		"typescript-eslint": "^8.23.0"
 	}
 }
