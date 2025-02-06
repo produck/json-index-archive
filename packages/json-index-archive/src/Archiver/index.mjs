@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Stream } from 'node:stream';
+import * as Events from 'node:events';
 
 import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
@@ -142,6 +143,7 @@ export class Archiver {
 		const handle = await fs.promises.open(absoluteDestination, 'w', mode);
 		const sizeBuffer = new BigUint64Array([0n]);
 
+		Events.setMaxListeners(Number.MAX_SAFE_INTEGER, handle);
 		await handle.write(sizeBuffer);
 
 		let offset = 0;

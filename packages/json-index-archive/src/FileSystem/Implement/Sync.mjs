@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as Stream from 'node:stream';
 import * as StreamConsumer from 'node:stream/consumers';
 import * as crypto from 'node:crypto';
+import * as Events from 'node:events';
 
 import * as Ow from '@produck/ow';
 import { Assert } from '@produck/idiom';
@@ -44,6 +45,7 @@ export default async (self) => {
 	const handle = await fs.promises.open(pathname);
 	const fileSizeBuffer = new BigUint64Array([0n]);
 
+	Events.setMaxListeners(Number.MAX_SAFE_INTEGER, handle);
 	await handle.read(fileSizeBuffer);
 
 	const fileSize = self[FILE_SIZE] = fileSizeBuffer[0];
