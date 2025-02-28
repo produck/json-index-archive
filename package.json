@@ -8,7 +8,8 @@
 		"deps:install": "npm -v && npm install",
 		"lint": "eslint --fix packages/**/*.mjs",
 		"test": "npm test --workspaces --if-present",
-		"coverage": "c8 --reporter=lcov npm run test",
+		"coverage": "c8 --exclude=\"**/test/**\" --exclude=\"**/*.gen*\" --reporter=lcov npm test",
+		"covdev": "c8 --exclude=\"**/test/**\" --exclude=\"**/*.gen*\" --experimental-monocart --reporter=v8 npm test",
 		"publish": "npm run lint && lerna publish"
 	},
 	"workspaces": [
@@ -16,17 +17,18 @@
 		"packages/json-index-archive"
 	],
 	"devDependencies": {
-		"@eslint/js": "^9.19.0",
-		"@produck/eslint-rules": "^0.2.5",
+		"@eslint/js": "^9.21.0",
+		"@produck/eslint-rules": "^0.2.6",
 		"@rollup/plugin-terser": "^0.4.4",
 		"@types/mocha": "^10.0.10",
-		"@types/node": "^22.13.1",
+		"@types/node": "^22.13.5",
 		"c8": "^10.1.3",
-		"eslint": "^9.19.0",
-		"globals": "^15.14.0",
-		"lerna": "^8.1.9",
+		"eslint": "^9.21.0",
+		"globals": "^16.0.0",
+		"lerna": "^8.2.0",
 		"mocha": "^11.1.0",
-		"rollup": "^4.34.4",
-		"typescript-eslint": "^8.23.0"
+		"monocart-coverage-reports": "^2.12.2",
+		"rollup": "^4.34.8",
+		"typescript-eslint": "^8.25.0"
 	}
 }

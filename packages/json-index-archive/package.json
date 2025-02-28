@@ -5,8 +5,7 @@
 		"access": "public"
 	},
 	"files": [
-		"src",
-		"tsconfig.json"
+		"src"
 	],
 	"main": "src/index.mjs",
 	"type": "module",
@@ -30,7 +29,7 @@
 	"license": "MIT",
 	"description": "",
 	"dependencies": {
-		"@produck/idiom": "^0.4.2",
-		"@produck/ow": "^0.1.3"
+		"@produck/idiom": "^0.4.3",
+		"@produck/ow": "^0.1.4"
 	}
 }
